@@ -1,5 +1,4 @@
-﻿/*#if (SampleContent)*/
-html, body {
+﻿html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
@@ -85,4 +84,12 @@ h1:focus {
     .flex-column, .navbar-brand {
         padding-left: env(safe-area-inset-left);
     }
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background: #333;
+    width: 80%;
+    background-image: linear-gradient(to right, #ccc, #333, #ccc);
 }
