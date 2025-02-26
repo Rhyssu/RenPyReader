@@ -15,7 +15,7 @@
         private const decimal min = 0.1M;
 
         // Maximum value for the file size in gigabytes
-        private const decimal max = 16M;
+        private const decimal max = 32M;
 
         // Step value for incrementing/decrementing the file size
         private const double step = 0.1;

@@ -1,0 +1,58 @@
+<div class="file-property-wrapper">
+    <div class="file-property">
+        <label>
+            <strong>
+                Name:
+            </strong>
+        </label>
+        @{
+            string name = File == null ? "" : File.Name;
+        }
+        <TextInput @bind-Value="@name" Disabled="true" />
+    </div>
+    <div class="file-property">
+        <label>
+            <strong>
+                ContentType:
+            </strong>
+        </label>
+        @{
+            string contentType = File == null ? "" : File.ContentType;
+        }
+        <TextInput @bind-Value="@contentType" Disabled="true" />
+        <span class="form-text">
+            Hint: Because I'm lazy the only allowed format is zip.
+        </span>
+    </div>
+    <div class="file-property">
+        <label>
+            <strong>
+                Size:
+            </strong>
+        </label>
+        @{
+            string size = File == null 
+            ? "" 
+            : Math.Round(File.Size / 1073741824.0M, 2)
+                .ToString() + " GB";
+        }
+        <TextInput @bind-Value="@size" Disabled="true" />
+        <span class="form-text">
+            Hint: Max size is determined only by your RAM.
+        </span>
+    </div>
+    <div class="file-property">
+        <label>
+            <strong>
+                Last modified:
+            </strong>
+        </label>
+        @{
+            string lastModified = File == null 
+            ? "" 
+            : File.LastModified
+                .ToString();
+        }
+        <TextInput @bind-Value="@lastModified" Disabled="true" />
+    </div>
+</div>

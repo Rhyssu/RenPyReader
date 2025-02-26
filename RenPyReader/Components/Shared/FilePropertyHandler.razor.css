@@ -1,0 +1,12 @@
+﻿.file-property-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.file-property {
+    width: 324px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
