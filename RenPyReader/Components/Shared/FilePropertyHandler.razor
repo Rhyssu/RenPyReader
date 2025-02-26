@@ -20,9 +20,6 @@
             string contentType = File == null ? "" : File.ContentType;
         }
         <TextInput @bind-Value="@contentType" Disabled="true" />
-        <span class="form-text">
-            Hint: Because I'm lazy the only allowed format is zip.
-        </span>
     </div>
     <div class="file-property">
         <label>
@@ -37,9 +34,6 @@
                 .ToString() + " GB";
         }
         <TextInput @bind-Value="@size" Disabled="true" />
-        <span class="form-text">
-            Hint: Max size is determined only by your RAM.
-        </span>
     </div>
     <div class="file-property">
         <label>
@@ -50,8 +44,7 @@
         @{
             string lastModified = File == null 
             ? "" 
-            : File.LastModified
-                .ToString();
+            : File.LastModified.UtcDateTime.ToString();
         }
         <TextInput @bind-Value="@lastModified" Disabled="true" />
     </div>

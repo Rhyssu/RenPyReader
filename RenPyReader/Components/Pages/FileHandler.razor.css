@@ -11,6 +11,7 @@
     padding-top: 32px;
     padding-bottom: 32px;
     gap: 16px;
+    border-right: dotted lightgray 2px;
 }
 
 .small-column {
@@ -19,4 +20,14 @@
 
 .medium-column {
     width: 60vw;
+}
+
+.file-handler-buttons-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+}
+
+.file-handler-zip-entry-names {
+
 }

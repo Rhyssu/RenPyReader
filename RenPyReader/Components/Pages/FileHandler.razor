@@ -6,8 +6,35 @@
     <div class="file-handler-column small-column">
         <FileSizeHandler @ref="_fileSizeHandler" />
         <hr />
+        <div class="file-handler-buttons-wrapper">
+            <Button Color="ButtonColor.Secondary"
+            Outline="true"
+            @onclick="async () => await TriggerFileInputAsync()">
+                Upload
+            </Button>
+            <Button Color="ButtonColor.Secondary"
+            Outline="true"
+            Disabled="!IsFileSelected"
+            @onclick="async () => await Scan()">
+                ListFiles
+            </Button>
+            <Button Color="ButtonColor.Secondary"
+            Outline="true"
+            Disabled="!IsFileSelected"
+            @onclick="async () => await Process()">
+                Process
+            </Button>
+        </div>
         <hr />
         <FilePropertyHandler @ref="_filePropertyHandler" />
+        <FileMemoryUsageHandler @ref="_fileMemoryUsageHandler" />
+        <InputFile @ref="_inputFileReference"
+        id="inputFileID"
+        style="visibility: collapse;
+                    width: 0px;
+                    height: 0px;"
+        OnChange="HandleInputFile"
+        multiple accept=".zip" />
     </div>
     <div class="file-handler-column small-column">
 

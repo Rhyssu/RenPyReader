@@ -1,0 +1,19 @@
+<div class="file-memory-usage-wrapper">
+    <label>
+        <strong>
+            Current memory usage (GB):
+        </strong>
+    </label>
+    @{
+        string mem = string.Empty;
+        if (memoryUsage != 0)
+        {
+            mem = Math.Round(memoryUsage / 1073741824.0M, 2)
+            .ToString();
+        }
+    }
+    <TextInput @bind-Value="@mem" Disabled="true" />
+    <span class="form-text">
+        Hint: Approximated amount of memory allocated.
+    </span>
+</div>
