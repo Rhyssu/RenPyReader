@@ -52,26 +52,17 @@ namespace RenPyReader.Components.Pages
         private async Task Scan()
         {
             _isWorking = true;
-            _fileMemoryUsageHandler!.Start();
+             _fileMemoryUsageHandler!.Start();
             StateHasChanged();
 
             try
             {
-                using (var memoryStream = new MemoryStream())
+                var tempPath = Path.GetTempFileName();
+                using (var fileStream = new FileStream(tempPath, FileMode.Create))
                 {
-                    var maxFileSize = _fileSizeHandler!
-                        .GetMaximumSizeBytes();
                     await _selectedFile!
-                        .OpenReadStream(maxFileSize)
-                        .CopyToAsync(memoryStream);
-                    memoryStream.Seek(0, SeekOrigin.Begin);
-
-                    using (var archive = new ZipArchive(
-                        memoryStream, ZipArchiveMode.Read))
-                    {
-                        _zipEntriesNames = 
-                            [.. archive.Entries.Select(x => x.Name)];
-                    }
+                        .OpenReadStream(maxAllowedSize: long.MaxValue)
+                        .CopyToAsync(fileStream);
                 }
             }
             finally
