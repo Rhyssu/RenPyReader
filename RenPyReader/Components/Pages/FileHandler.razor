@@ -9,14 +9,9 @@
         <div class="file-handler-buttons-wrapper">
             <Button Color="ButtonColor.Secondary"
             Outline="true"
+            Disabled="_isWorking"
             @onclick="async () => await TriggerFileInputAsync()">
                 Upload
-            </Button>
-            <Button Color="ButtonColor.Secondary"
-            Outline="true"
-            Disabled="!IsFileSelected"
-            @onclick="async () => await Scan()">
-                ListFiles
             </Button>
             <Button Color="ButtonColor.Secondary"
             Outline="true"
@@ -36,10 +31,49 @@
         OnChange="HandleInputFile"
         multiple accept=".zip" />
     </div>
-    <div class="file-handler-column small-column">
-
+    <div class="file-handler-column small-column entry-list">
+        @if (_zipEntriesNames != null && _zipEntriesNames.Any())
+        {
+            <div class="file-handler-zip-entries">
+                @foreach (var entryName in _zipEntriesNames)
+                {
+                    @if (!string.IsNullOrEmpty(entryName))
+                    {
+                        <div class="file-handler-entry">
+                            @entryName
+                        </div>
+                    }
+                }
+            </div>
+        }
+        else if (_zipEntries != null && _zipEntries.Any())
+        {
+            <div class="file-handler-zip-entries">
+                @foreach (var entry in _zipEntries)
+                {
+                    <div class="file-handler-entry">
+                        @entry.Name
+                    </div>
+                }
+            </div>
+        }
     </div>
-    <div class="file-handler-column medium-column">
-
+    <div class="file-handler-column medium-column log-buffer">
+        <div class="file-handler-process-output">
+            @if (_logBuffer != null)
+            {
+                foreach (var message in _logBuffer.GetMessages())
+                {
+                    <div class="file-handler-process-output-message">
+                        @message
+                    </div>
+                }
+            }
+        </div>
+        <div class="file-handler-progress">
+            <Progress Style="width: 100%;">
+                <ProgressBar @ref="_progressBar" />
+            </Progress>
+        </div>
     </div>
 </div>

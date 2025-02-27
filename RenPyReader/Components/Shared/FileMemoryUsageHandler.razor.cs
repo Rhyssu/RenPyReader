@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Timers;
 using Timer = System.Timers.Timer;
 

@@ -22,12 +22,45 @@
     width: 60vw;
 }
 
+.entry-list {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    overflow-y: auto;
+}
+
+.log-buffer {
+    align-items: start;
+    padding-left: 32px;
+    line-height: 2;
+    overflow-y: auto;
+    padding-right: 32px;
+}
+
 .file-handler-buttons-wrapper {
     display: flex;
     flex-direction: row;
     gap: 16px;
 }
 
-.file-handler-zip-entry-names {
+.file-handler-zip-entries {
+    width: 100%;
+}
 
+.file-handler-entry {
+    padding: 16px;
+}
+
+    .file-handler-entry:hover {
+        background-color: lightgray;
+    }
+
+.file-handler-process-output {
+    height: 95%;
+    width: 100%;
+}
+
+.file-handler-progress {
+    height: 5%;
+    width: 100%;
+    align-content: center;
 }

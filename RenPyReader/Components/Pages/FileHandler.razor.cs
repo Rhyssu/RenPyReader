@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components.Forms;
-using RenPyReader.Components.Shared;
 using Microsoft.JSInterop;
+using RenPyReader.Components.Shared;
+using RenPyReader.Utilities;
 using System.IO.Compression;
+using ProgressBar = BlazorBootstrap.ProgressBar;
 
 namespace RenPyReader.Components.Pages
 {
@@ -25,6 +27,12 @@ namespace RenPyReader.Components.Pages
 
         private List<string>? _zipEntriesNames;
 
+        private string? _tempFilePath;
+
+        private LogBuffer _logBuffer = new(10000);
+
+        private ProgressBar? _progressBar;
+
         private void HandleInputFile(InputFileChangeEventArgs e)
         {
             _selectedFile = null;
@@ -32,14 +40,14 @@ namespace RenPyReader.Components.Pages
 
             if (file == null)
             {
-                _errorMessage = "No file was uploaded.";
+                _logBuffer.Add("No file was uploaded.");
                 StateHasChanged();
                 return;
             }
 
             if (!Path.GetExtension(file.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase))
             {
-                _errorMessage = "File must be zip.";
+                _logBuffer.Add("File must be zip.");
                 StateHasChanged();
                 return;
             }
@@ -49,33 +57,79 @@ namespace RenPyReader.Components.Pages
             StateHasChanged();
         }
 
-        private async Task Scan()
+        private async Task Process()
         {
-            _isWorking = true;
-             _fileMemoryUsageHandler!.Start();
-            StateHasChanged();
+            StartWorking();
 
             try
             {
-                var tempPath = Path.GetTempFileName();
-                using (var fileStream = new FileStream(tempPath, FileMode.Create))
-                {
-                    await _selectedFile!
-                        .OpenReadStream(maxAllowedSize: long.MaxValue)
-                        .CopyToAsync(fileStream);
-                }
+                _tempFilePath = Path.GetTempFileName();
+
+                await CreateTempFileAsync();
+                await ProcessTempFileAsync();
+            }
+            catch (IOException iex)
+            {
+                _logBuffer.Add($"IOException caught: {iex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logBuffer.Add($"Exception caught: {ex.Message}");
             }
             finally
             {
-                _isWorking = false;
-                _fileMemoryUsageHandler!.Stop();
-                StateHasChanged();
+                StopWorking();
             }
         }
 
-        private async Task Process()
+        private async Task CreateTempFileAsync()
         {
+            _logBuffer.Add("Creating new temporary file...");
 
+            using var tempFileStream = new FileStream(
+                _tempFilePath!, FileMode.Create, FileAccess.Write, FileShare.Read);
+            await _selectedFile!.OpenReadStream(maxAllowedSize: long.MaxValue)
+                .CopyToAsync(tempFileStream);
+
+            FileInfo? fileInfo = new(_tempFilePath!);
+            long fileSize = fileInfo.Length;
+
+            _logBuffer.Add($"Successfully created new temporary file with size: {fileSize} bytes.");
+        }
+
+        private async Task ProcessTempFileAsync()
+        {
+            _logBuffer.Add("Processing uploaded zip file.");
+
+            using var tempFileStream = new FileStream(
+                _tempFilePath!, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var archive = new ZipArchive(tempFileStream, ZipArchiveMode.Read);
+
+            int archiveCount = archive.Entries.Count;
+            _logBuffer.Add($"Found {archiveCount} inside uploaded zip file.");
+            StateHasChanged();
+
+            int currentEntryIndex = 0;
+            foreach (var entry in archive.Entries)
+            {
+                
+            }
+        }
+
+        private void StartWorking()
+        {
+            _isWorking = true;
+            _fileMemoryUsageHandler!.Start();
+
+            StateHasChanged();
+        }
+
+        private void StopWorking()
+        {
+            _isWorking = false;
+            _fileMemoryUsageHandler!.Stop();
+
+            StateHasChanged();
         }
 
         private bool IsFileSelected => _selectedFile != null && !_isWorking;
