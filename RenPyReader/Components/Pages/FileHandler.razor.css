@@ -59,8 +59,9 @@
     width: 100%;
 }
 
-.file-handler-progress {
-    height: 5%;
-    width: 100%;
-    align-content: center;
+.entries-processed-handler {
+    width: 324px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }

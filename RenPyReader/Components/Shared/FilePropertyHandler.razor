@@ -6,19 +6,8 @@
             </strong>
         </label>
         @{
-            string name = File == null ? "" : File.FileName;
+            string name = fileResult == null ? "" : fileResult.FileName;
         }
         <TextInput @bind-Value="@name" Disabled="true" />
-    </div>
-    <div class="file-property">
-        <label>
-            <strong>
-                ContentType:
-            </strong>
-        </label>
-        @{
-            string contentType = File == null ? "" : File.ContentType;
-        }
-        <TextInput @bind-Value="@contentType" Disabled="true" />
     </div>
 </div>

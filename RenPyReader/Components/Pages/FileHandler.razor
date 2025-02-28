@@ -4,7 +4,7 @@
 
 <div class="file-handler-wrapper">
     <div class="file-handler-column small-column">
-        <FileSizeHandler @ref="_fileSizeHandler" />
+        <DatabaseHandler @ref="_databaseHandler" LogBuffer="_logBuffer" />
         <hr />
         <div class="file-handler-buttons-wrapper">
             <Button Color="ButtonColor.Secondary"
@@ -45,17 +45,6 @@
                 }
             </div>
         }
-        else if (_zipEntries != null && _zipEntries.Any())
-        {
-            <div class="file-handler-zip-entries">
-                @foreach (var entry in _zipEntries)
-                {
-                    <div class="file-handler-entry">
-                        @entry.Name
-                    </div>
-                }
-            </div>
-        }
     </div>
     <div class="file-handler-column medium-column log-buffer">
         <div class="file-handler-process-output">
@@ -68,11 +57,6 @@
                     </div>
                 }
             }
-        </div>
-        <div class="file-handler-progress">
-            <Progress Style="width: 100%;">
-                <ProgressBar @ref="_progressBar" />
-            </Progress>
         </div>
     </div>
 </div>

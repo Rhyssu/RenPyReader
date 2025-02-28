@@ -1,6 +1,6 @@
 ﻿namespace RenPyReader.Utilities
 {
-    internal class LogBuffer(int size)
+    public class LogBuffer(int size)
     {
         private readonly List<string> _buffer = [.. new string[size]];
 

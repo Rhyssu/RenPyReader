@@ -8,19 +8,6 @@
 
         internal uint Index { get; set; } = index;
 
-        internal byte[]? Content { get; set; }
-
-        internal string GetBase64()
-        {
-            if (Content == null)
-            {
-                return string.Empty;
-            }
-
-            var base64 = Convert.ToBase64String(Content);
-            return $"data:image/webp;base64,{base64}";
-        }
-
         public override string ToString() => $"{Parent} | {Name} | {Index}";
     }
 }

@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.UI.Xaml.Automation.Peers;
 using RenPyReader.Components.Shared;
+using RenPyReader.DataModels;
 using RenPyReader.Utilities;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Processing;
 using System.IO.Compression;
-using System.IO.Pipes;
-using ProgressBar = BlazorBootstrap.ProgressBar;
+using Image = SixLabors.ImageSharp.Image;
 
 namespace RenPyReader.Components.Pages
 {
@@ -13,29 +14,25 @@ namespace RenPyReader.Components.Pages
     {
         private FileSizeHandler? _fileSizeHandler;
 
+        private DatabaseHandler? _databaseHandler;
+
         private FilePropertyHandler? _filePropertyHandler;
 
         private FileMemoryUsageHandler? _fileMemoryUsageHandler;
 
-        private InputFile? _inputFileReference;
-
         private FileResult? _selectedFile;
-
-        private string? _errorMessage;
 
         private bool _isWorking;
 
-        private List<ZipArchiveEntry>? _zipEntries;
-
         private List<string>? _zipEntriesNames;
-
-        private string? _tempFilePath;
 
         private LogBuffer _logBuffer = new(10000);
 
-        private ProgressBar? _progressBar;
+        private Dictionary<string, Func<ZipArchiveEntry, Task>>? _fileHandlers;
 
         private PickOptions? _options;
+
+        private int _entriesProcessedCount = 0;
 
         protected override void OnAfterRender(bool firstRender)
         {
@@ -44,10 +41,28 @@ namespace RenPyReader.Components.Pages
                 _options = new PickOptions
                 {
                     PickerTitle = "Select a zip file",
-                    FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                    FileTypes = new FilePickerFileType(
+                        new Dictionary<DevicePlatform, IEnumerable<string>>
                     {
                         { DevicePlatform.WinUI, [".zip"] }
                     })
+                };
+
+                _fileHandlers = new Dictionary<string, 
+                    Func<ZipArchiveEntry, Task>>(StringComparer.OrdinalIgnoreCase)
+                {
+                    { ".png",   ProcessImageFile },
+                    { ".jpg",   ProcessImageFile },
+                    { ".jpeg",  ProcessImageFile },
+                    { ".gif",   ProcessImageFile },
+                    { ".bmp",   ProcessImageFile },
+                    { ".tiff",  ProcessImageFile },
+                    { ".tif",   ProcessImageFile },
+                    { ".ico",   ProcessImageFile },
+                    { ".webp",  ProcessImageFile },
+                    { ".mp3",   ProcessAudioFile },
+                    { ".wav",   ProcessAudioFile },
+                    { ".rpy",   ProcessRenPyFile }
                 };
             }
         }
@@ -56,7 +71,7 @@ namespace RenPyReader.Components.Pages
         {
             if (_options == null)
             {
-                throw new ArgumentNullException("File picker options are not set.");
+                throw new ArgumentNullException("fileResult picker options are not set.");
             }
 
             try
@@ -65,7 +80,7 @@ namespace RenPyReader.Components.Pages
             }
             catch (TaskCanceledException)
             {
-                _logBuffer.Add("File picker task was canceled.");
+                _logBuffer.Add("fileResult picker task was canceled.");
             }
             finally
             {
@@ -95,7 +110,7 @@ namespace RenPyReader.Components.Pages
             
             try
             {
-                using (var stream = await _selectedFile.OpenReadAsync())
+                await using (var stream = await _selectedFile.OpenReadAsync())
                 {
                     using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
                     {
@@ -126,21 +141,28 @@ namespace RenPyReader.Components.Pages
 
             try
             {
-                using (var stream = await _selectedFile.OpenReadAsync())
+                await using (var stream = await _selectedFile.OpenReadAsync())
                 {
                     using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
                     {
-                        var entryLock = new object();
-                        Parallel.ForEach(archive.Entries, entry =>
+                        foreach (var entry in archive.Entries)
                         {
-                            lock (entryLock)
+                            if (entry.FullName.EndsWith('/'))
                             {
-                                using (var entryStream = entry.Open())
-                                {
-                                    _logBuffer.Add("Processing entry: " + entry.FullName);
-                                }
+                                continue;
                             }
-                        });
+
+                            var extension = Path.GetExtension(entry.Name);
+                            if (string.IsNullOrEmpty(extension))
+                            {
+                                return;
+                            }
+
+                            if (_fileHandlers?.TryGetValue(extension, out var fileHandler) == true)
+                            {
+                                await fileHandler(entry);
+                            }
+                        }
                     }
                 }
             }
@@ -151,6 +173,68 @@ namespace RenPyReader.Components.Pages
             finally
             {
                 StopWorking();
+            }
+        }
+
+        private async Task ProcessImageFile(ZipArchiveEntry entry)
+        {
+            try
+            {
+                using (var entryStream = entry.Open())
+                {
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        await entryStream.CopyToAsync(memoryStream);
+                        memoryStream.Position = 0;
+
+                        IImageFormat format = Image.DetectFormat(memoryStream);
+                        if (format != null)
+                        {
+                            memoryStream.Position = 0;
+                            using var image = Image.Load(memoryStream);
+                            image.Mutate(x => x.Resize(960, 540));
+
+                            using var outputStream = new MemoryStream();
+                            image.Save(outputStream, format);
+                            byte[] imageData = outputStream.ToArray();
+
+                            RenPyImage newImage = new(entry.Name, imageData);
+                            await _databaseHandler!.InsertImageAsync(newImage);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logBuffer.Add($"Exception caught: {ex.Message}");
+            }
+            finally
+            {
+                _entriesProcessedCount += 1;
+            }
+        }
+
+        private async Task ProcessAudioFile(ZipArchiveEntry entry)
+        {
+            try
+            {
+
+            }
+            catch (Exception ex)
+            {
+                _logBuffer.Add($"Exception caught: {ex.Message}");
+            }
+        }
+
+        private async Task ProcessRenPyFile(ZipArchiveEntry entry)
+        {
+            try
+            {
+
+            }
+            catch (Exception ex)
+            {
+                _logBuffer.Add($"Exception caught: {ex.Message}");
             }
         }
 

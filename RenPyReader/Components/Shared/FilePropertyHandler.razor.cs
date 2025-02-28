@@ -1,15 +1,12 @@
-﻿using System.ComponentModel;
-
-namespace RenPyReader.Components.Shared
+﻿namespace RenPyReader.Components.Shared
 {
     public partial class FilePropertyHandler
     {
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        private FileResult? File { get; set; }
+        private FileResult? fileResult;
 
         public void SetFile(FileResult file)
         {
-            File = file;
+            fileResult = file;
             StateHasChanged();
         }
     }
