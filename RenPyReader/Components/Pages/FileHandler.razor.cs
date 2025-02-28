@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.JSInterop;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.UI.Xaml.Automation.Peers;
 using RenPyReader.Components.Shared;
 using RenPyReader.Utilities;
 using System.IO.Compression;
+using System.IO.Pipes;
 using ProgressBar = BlazorBootstrap.ProgressBar;
 
 namespace RenPyReader.Components.Pages
 {
-    public partial class FileHandler
+    public partial class FileHandler : ComponentBase
     {
         private FileSizeHandler? _fileSizeHandler;
 
@@ -17,7 +19,7 @@ namespace RenPyReader.Components.Pages
 
         private InputFile? _inputFileReference;
 
-        private IBrowserFile? _selectedFile;
+        private FileResult? _selectedFile;
 
         private string? _errorMessage;
 
@@ -33,44 +35,73 @@ namespace RenPyReader.Components.Pages
 
         private ProgressBar? _progressBar;
 
-        private void HandleInputFile(InputFileChangeEventArgs e)
+        private PickOptions? _options;
+
+        protected override void OnAfterRender(bool firstRender)
         {
-            _selectedFile = null;
-            IBrowserFile file = e.File;
-
-            if (file == null)
+            if (firstRender)
             {
-                _logBuffer.Add("No file was uploaded.");
-                StateHasChanged();
-                return;
+                _options = new PickOptions
+                {
+                    PickerTitle = "Select a zip file",
+                    FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                    {
+                        { DevicePlatform.WinUI, [".zip"] }
+                    })
+                };
             }
-
-            if (!Path.GetExtension(file.Name).Equals(".zip", StringComparison.OrdinalIgnoreCase))
-            {
-                _logBuffer.Add("File must be zip.");
-                StateHasChanged();
-                return;
-            }
-
-            _selectedFile = file;
-            _filePropertyHandler?.SetFile(file);
-            StateHasChanged();
         }
 
-        private async Task Process()
+        private async Task HandleFilePickerAsync()
         {
-            StartWorking();
+            if (_options == null)
+            {
+                throw new ArgumentNullException("File picker options are not set.");
+            }
 
             try
             {
-                _tempFilePath = Path.GetTempFileName();
-
-                await CreateTempFileAsync();
-                await ProcessTempFileAsync();
+                _selectedFile = await FilePicker.PickAsync(_options);
             }
-            catch (IOException iex)
+            catch (TaskCanceledException)
             {
-                _logBuffer.Add($"IOException caught: {iex.Message}");
+                _logBuffer.Add("File picker task was canceled.");
+            }
+            finally
+            {
+                if (_selectedFile == null)
+                {
+                    _logBuffer.Add("No file selected.");
+                }
+                else
+                {
+                    _filePropertyHandler?.SetFile(_selectedFile);
+                }
+
+                StateHasChanged();
+            }
+        }
+
+        private async Task HandleListEntriesAsync()
+        {
+            if (_selectedFile == null)
+            {
+                _logBuffer.Add("No file selected.");
+                StateHasChanged();
+                return;
+            }
+
+            StartWorking();
+            
+            try
+            {
+                using (var stream = await _selectedFile.OpenReadAsync())
+                {
+                    using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
+                    {
+                        _zipEntriesNames = [.. archive.Entries.Select(x => x.Name)];
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -82,61 +113,61 @@ namespace RenPyReader.Components.Pages
             }
         }
 
-        private async Task CreateTempFileAsync()
+        private async Task ProcessEntriesAsync()
         {
-            _logBuffer.Add("Creating new temporary file...");
-
-            using var tempFileStream = new FileStream(
-                _tempFilePath!, FileMode.Create, FileAccess.Write, FileShare.Read);
-            await _selectedFile!.OpenReadStream(maxAllowedSize: long.MaxValue)
-                .CopyToAsync(tempFileStream);
-
-            FileInfo? fileInfo = new(_tempFilePath!);
-            long fileSize = fileInfo.Length;
-
-            _logBuffer.Add($"Successfully created new temporary file with size: {fileSize} bytes.");
-        }
-
-        private async Task ProcessTempFileAsync()
-        {
-            _logBuffer.Add("Processing uploaded zip file.");
-
-            using var tempFileStream = new FileStream(
-                _tempFilePath!, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using var archive = new ZipArchive(tempFileStream, ZipArchiveMode.Read);
-
-            int archiveCount = archive.Entries.Count;
-            _logBuffer.Add($"Found {archiveCount} inside uploaded zip file.");
-            StateHasChanged();
-
-            int currentEntryIndex = 0;
-            foreach (var entry in archive.Entries)
+            if (_selectedFile == null)
             {
-                
+                _logBuffer.Add("No file selected.");
+                StateHasChanged();
+                return;
+            }
+
+            StartWorking();
+
+            try
+            {
+                using (var stream = await _selectedFile.OpenReadAsync())
+                {
+                    using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
+                    {
+                        var entryLock = new object();
+                        Parallel.ForEach(archive.Entries, entry =>
+                        {
+                            lock (entryLock)
+                            {
+                                using (var entryStream = entry.Open())
+                                {
+                                    _logBuffer.Add("Processing entry: " + entry.FullName);
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logBuffer.Add($"Exception caught: {ex.Message}");
+            }
+            finally
+            {
+                StopWorking();
             }
         }
 
         private void StartWorking()
         {
             _isWorking = true;
-            _fileMemoryUsageHandler!.Start();
-
+            _fileMemoryUsageHandler?.Start();
             StateHasChanged();
         }
 
         private void StopWorking()
         {
             _isWorking = false;
-            _fileMemoryUsageHandler!.Stop();
-
+            _fileMemoryUsageHandler?.Stop();
             StateHasChanged();
         }
 
         private bool IsFileSelected => _selectedFile != null && !_isWorking;
-
-        private async Task TriggerFileInputAsync()
-        {
-            await JSRuntime.InvokeVoidAsync("triggerInputFile", "inputFileID");
-        }
     }
 }

@@ -1,15 +1,13 @@
-﻿using Microsoft.AspNetCore.Components.Forms;
-using System.ComponentModel;
-using System.Security.Permissions;
+﻿using System.ComponentModel;
 
 namespace RenPyReader.Components.Shared
 {
     public partial class FilePropertyHandler
     {
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        private IBrowserFile? File { get; set; }
+        private FileResult? File { get; set; }
 
-        public void SetFile(IBrowserFile file)
+        public void SetFile(FileResult file)
         {
             File = file;
             StateHasChanged();

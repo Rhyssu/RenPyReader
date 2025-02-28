@@ -8,28 +8,27 @@
         <hr />
         <div class="file-handler-buttons-wrapper">
             <Button Color="ButtonColor.Secondary"
-            Outline="true"
-            Disabled="_isWorking"
-            @onclick="async () => await TriggerFileInputAsync()">
+                    Outline="true"
+                    Disabled="_isWorking"
+                    @onclick="async () => await HandleFilePickerAsync()">
                 Upload
             </Button>
             <Button Color="ButtonColor.Secondary"
-            Outline="true"
-            Disabled="!IsFileSelected"
-            @onclick="async () => await Process()">
+                    Outline="true"
+                    Disabled="!IsFileSelected"
+                    @onclick="async () => await HandleListEntriesAsync()">
+                ListEntries
+            </Button>
+            <Button Color="ButtonColor.Secondary"
+                    Outline="true"
+                    Disabled="!IsFileSelected"
+                    @onclick="async () => await ProcessEntriesAsync()">
                 Process
             </Button>
         </div>
         <hr />
         <FilePropertyHandler @ref="_filePropertyHandler" />
         <FileMemoryUsageHandler @ref="_fileMemoryUsageHandler" />
-        <InputFile @ref="_inputFileReference"
-        id="inputFileID"
-        style="visibility: collapse;
-                    width: 0px;
-                    height: 0px;"
-        OnChange="HandleInputFile"
-        multiple accept=".zip" />
     </div>
     <div class="file-handler-column small-column entry-list">
         @if (_zipEntriesNames != null && _zipEntriesNames.Any())

@@ -1,18 +1,18 @@
 <div class="file-size-handler-wrapper">
     <label>
         <strong>
-            Maximum file size:
+            Maximum entry size:
         </strong>
     </label>
     <NumberInput TValue="decimal?"
-                 Value="maximumSizeGigaBytes"
-                 ValueExpression="() => maximumSizeGigaBytes"
+                 Value="maximumSizeMegaBytes"
+                 ValueExpression="() => maximumSizeMegaBytes"
                  ValueChanged="(value) => OnSizeChanged(value)"
                  EnableMinMax="true"
                  Min="min"
                  Max="max"
                  Step="step" />
     <span class="form-text">
-        Tip: The size must be between @($"{min}GB") and @($"{max}GB").
+        Tip: The size must be between @($"{min}MB") and @($"{max}MB").
     </span>
 </div>
