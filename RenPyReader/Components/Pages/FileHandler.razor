@@ -4,14 +4,11 @@
 
 <div class="file-handler-wrapper">
     <div class="file-handler-column small-column">
-        <DatabaseHandler @ref="_databaseHandler" LogBuffer="_logBuffer" />
-        <hr />
-        <div class="file-handler-switches">
-            <Switch Value="_newEntriesOnly" Label="Process only new files" 
-                    Disabled="_isWorking"
-                    ValueExpression="() => _newEntriesOnly"
-                    ValueChanged="NewEntriesOnlyChangedAsync" />
-        </div>
+        <DatabaseHandler @ref="_databaseHandler" 
+            LogBuffer="_logBuffer" />
+        <FilePropertyHandler @ref="_nameHandler" 
+            Label="ZIP archive name:" 
+            Hint="Hint: Use upload button to select archive file."/>
         <hr />
         <div class="file-handler-buttons-wrapper">
             <Button Color="ButtonColor.Secondary"
@@ -26,11 +23,19 @@
                     @onclick="async () => await ProcessEntriesAsync()">
                 Process
             </Button>
+            <Button Color="ButtonColor.Secondary"
+                    Outline="true"
+                    Disabled="!IsFileSelected">
+                StopProcessing
+            </Button>
         </div>
         <hr />
-        <ProgressBarHandler @ref="_progressBarHandler" />
-        <FilePropertyHandler @ref="_nameHandler" Label="Name: " />
-        <FilePropertyHandler @ref="_progressHandler" Label="Processed entries: " />
+        <div class="file-handler-switches">
+            <Switch Value="_newEntriesOnly" Label="Process only new files" 
+                    Disabled="_isWorking"
+                    ValueExpression="() => _newEntriesOnly"
+                    ValueChanged="NewEntriesOnlyChangedAsync" />
+        </div>
     </div>
     <div class="file-handler-column small-column entry-list">
         @if (_zipEntriesNames != null && _zipEntriesNames.Any())

@@ -12,6 +12,7 @@ namespace RenPyReader.Components.Shared
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string Value { get; set; } = string.Empty;
 
+        [Parameter]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? Hint { get; set; } = string.Empty;
 
