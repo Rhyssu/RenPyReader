@@ -12,27 +12,31 @@ namespace RenPyReader.Components.Pages
 {
     public partial class FileHandler : ComponentBase
     {
-        private FileSizeHandler? _fileSizeHandler;
-
         private DatabaseHandler? _databaseHandler;
 
-        private FilePropertyHandler? _filePropertyHandler;
+        private FilePropertyHandler? _nameHandler;
 
-        private FileMemoryUsageHandler? _fileMemoryUsageHandler;
-
-        private FileResult? _selectedFile;
-
-        private bool _isWorking;
-
-        private List<string>? _zipEntriesNames;
-
-        private LogBuffer _logBuffer = new(10000);
+        private FilePropertyHandler? _progressHandler;
 
         private Dictionary<string, Func<ZipArchiveEntry, Task>>? _fileHandlers;
 
+        private FileResult? _selectedFile;
+        
+        private LogBuffer _logBuffer = new(10000);
+
         private PickOptions? _options;
 
-        private int _entriesProcessedCount = 0;
+        private List<string>? _zipEntriesNames;
+
+        private bool _isWorking;
+
+        private bool _parallelProcessing;
+
+        private bool _newEntriesOnly;
+
+        private HashSet<string>? _audioEntries;
+
+        private HashSet<string>? _imageEntries;
 
         protected override void OnAfterRender(bool firstRender)
         {
@@ -51,18 +55,18 @@ namespace RenPyReader.Components.Pages
                 _fileHandlers = new Dictionary<string, 
                     Func<ZipArchiveEntry, Task>>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { ".png",   ProcessImageFile },
-                    { ".jpg",   ProcessImageFile },
-                    { ".jpeg",  ProcessImageFile },
-                    { ".gif",   ProcessImageFile },
-                    { ".bmp",   ProcessImageFile },
-                    { ".tiff",  ProcessImageFile },
-                    { ".tif",   ProcessImageFile },
-                    { ".ico",   ProcessImageFile },
-                    { ".webp",  ProcessImageFile },
-                    { ".mp3",   ProcessAudioFile },
-                    { ".wav",   ProcessAudioFile },
-                    { ".rpy",   ProcessRenPyFile }
+                    { ".png",   ProcessImageFileAsync },
+                    { ".jpg",   ProcessImageFileAsync },
+                    { ".jpeg",  ProcessImageFileAsync },
+                    { ".gif",   ProcessImageFileAsync },
+                    { ".bmp",   ProcessImageFileAsync },
+                    { ".tiff",  ProcessImageFileAsync },
+                    { ".tif",   ProcessImageFileAsync },
+                    { ".ico",   ProcessImageFileAsync },
+                    { ".webp",  ProcessImageFileAsync },
+                    { ".mp3",   ProcessAudioFileAsync },
+                    { ".wav",   ProcessAudioFileAsync },
+                    { ".rpy",   ProcessRenPyFileAsync }
                 };
             }
         }
@@ -90,7 +94,8 @@ namespace RenPyReader.Components.Pages
                 }
                 else
                 {
-                    _filePropertyHandler?.SetFile(_selectedFile);
+                    _nameHandler!.Value = _selectedFile.FileName;
+                    _nameHandler.Update();
                 }
 
                 StateHasChanged();
@@ -145,7 +150,7 @@ namespace RenPyReader.Components.Pages
                 {
                     using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
                     {
-                        foreach (var entry in archive.Entries)
+                        foreach (var (entry, index) in archive.Entries.Select((entry, index) => (entry, index)))
                         {
                             if (entry.FullName.EndsWith('/'))
                             {
@@ -176,11 +181,11 @@ namespace RenPyReader.Components.Pages
             }
         }
 
-        private async Task ProcessImageFile(ZipArchiveEntry entry)
+        private async Task ProcessImageFileAsync(ZipArchiveEntry entry)
         {
             try
             {
-                using (var entryStream = entry.Open())
+                await using (var entryStream = entry.Open())
                 {
                     using (var memoryStream = new MemoryStream())
                     {
@@ -191,15 +196,19 @@ namespace RenPyReader.Components.Pages
                         if (format != null)
                         {
                             memoryStream.Position = 0;
-                            using var image = Image.Load(memoryStream);
-                            image.Mutate(x => x.Resize(960, 540));
+                            using (var image = Image.Load(memoryStream))
+                            {
+                                image.Mutate(x => x.Resize(960, 540));
+                                await using (var outputStream = new MemoryStream())
+                                {
+                                    image.Save(outputStream, format);
+                                    byte[] imageData = outputStream.ToArray();
+                                    var newImage = new RenPyImage(
+                                        entry.Name, imageData);
 
-                            using var outputStream = new MemoryStream();
-                            image.Save(outputStream, format);
-                            byte[] imageData = outputStream.ToArray();
-
-                            RenPyImage newImage = new(entry.Name, imageData);
-                            await _databaseHandler!.InsertImageAsync(newImage);
+                                    await _databaseHandler!.InsertImageAsync(newImage);
+                                }
+                            }
                         }
                     }
                 }
@@ -210,11 +219,11 @@ namespace RenPyReader.Components.Pages
             }
             finally
             {
-                _entriesProcessedCount += 1;
+
             }
         }
 
-        private async Task ProcessAudioFile(ZipArchiveEntry entry)
+        private async Task ProcessAudioFileAsync(ZipArchiveEntry entry)
         {
             try
             {
@@ -226,7 +235,7 @@ namespace RenPyReader.Components.Pages
             }
         }
 
-        private async Task ProcessRenPyFile(ZipArchiveEntry entry)
+        private async Task ProcessRenPyFileAsync(ZipArchiveEntry entry)
         {
             try
             {
@@ -236,19 +245,55 @@ namespace RenPyReader.Components.Pages
             {
                 _logBuffer.Add($"Exception caught: {ex.Message}");
             }
+        }
+
+        private async Task NewEntriesOnlyChangedAsync(bool value)
+        {
+            _newEntriesOnly = value;
+            if (value)
+            {
+                _logBuffer.Add("New entries only has been ENABLED. " +
+                    "Only files that are not in the DB will be processed.");
+
+                _audioEntries = await _databaseHandler!.GetBinaryEntriesNamesAsync("audios");
+                _logBuffer.Add($"Retrieved {_audioEntries.Count} audio file entries.");
+
+                _imageEntries = await _databaseHandler!.GetBinaryEntriesNamesAsync("images");
+                _logBuffer.Add($"Retrieved {_imageEntries.Count} image file entries.");
+            }
+            else
+            {
+                _logBuffer.Add("New entries only has been DISABLED. " +
+                    "All files will be processed.");
+
+                _audioEntries?.Clear();
+                _imageEntries?.Clear();
+                _logBuffer.Add("Cleared both audio and image entries names.");
+            }
+            StateHasChanged();
+        }
+
+        private void ParallelProcessingChanged(bool value)
+        {
+            _parallelProcessing = value;
+
+            if (value)
+                _logBuffer.Add("Parallel processing has been ENABLED.");
+            else
+                _logBuffer.Add("Parallel processing has been DISABLED.");
+
+            StateHasChanged();
         }
 
         private void StartWorking()
         {
             _isWorking = true;
-            _fileMemoryUsageHandler?.Start();
             StateHasChanged();
         }
 
         private void StopWorking()
         {
             _isWorking = false;
-            _fileMemoryUsageHandler?.Stop();
             StateHasChanged();
         }
 

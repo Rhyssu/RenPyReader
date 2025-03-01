@@ -1,13 +1,23 @@
-﻿namespace RenPyReader.Components.Shared
+﻿using Microsoft.AspNetCore.Components;
+using System.ComponentModel;
+
+namespace RenPyReader.Components.Shared
 {
     public partial class FilePropertyHandler
     {
-        private FileResult? fileResult;
+        [Parameter]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public required string Label { get; set; }
 
-        public void SetFile(FileResult file)
-        {
-            fileResult = file;
-            StateHasChanged();
-        }
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public string Value { get; set; } = string.Empty;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public string? Hint { get; set; } = string.Empty;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool Disabled { get; set; } = true;
+
+        public void Update() => StateHasChanged();
     }
 }

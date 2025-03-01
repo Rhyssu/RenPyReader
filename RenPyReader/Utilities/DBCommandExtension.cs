@@ -12,6 +12,7 @@
                 DBCommand.CreateRenPyBinaryBaseTable    => $"CREATE TABLE IF NOT EXISTS {baseName} (Name TEXT PRIMARY KEY, Content BLOB NOT NULL);",
                 DBCommand.InsertRenPyBinaryBase         => $"INSERT OR REPLACE INTO {baseName} (Name, Content) VALUES (@Name, @Content);",
                 DBCommand.GetRenPyBinaryBase            => $"SELECT * FROM {baseName} WHERE Name LIKE @Name;",
+                DBCommand.GetRenPyBinaryBaseNames       => $"SELECT name from {baseName};",
                 DBCommand.CreateRenPyCharacterTable     => "CREATE TABLE IF NOT EXISTS characters (Code TEXT PRIMARY KEY, Name TEXT NOT NULL, Color TEXT NOT NULL);",
                 DBCommand.InsertRenPyCharacter          => "INSERT OR REPLACE INTO characters (Code, Name, Color) VALUES (@Code, @Name, @Color);",
                 DBCommand.GetRenPyCharacter             => "SELECT * FROM characters WHERE Code = @Code;",

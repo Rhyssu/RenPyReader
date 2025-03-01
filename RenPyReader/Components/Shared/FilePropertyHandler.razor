@@ -2,12 +2,15 @@
     <div class="file-property">
         <label>
             <strong>
-                Name:
+                @Label
             </strong>
         </label>
-        @{
-            string name = fileResult == null ? "" : fileResult.FileName;
+        <TextInput @bind-Value="@Value" Disabled="@Disabled" />
+        @if (!string.IsNullOrEmpty(Hint))
+        {
+            <span class="form-text">
+                @Hint
+            </span>
         }
-        <TextInput @bind-Value="@name" Disabled="true" />
     </div>
 </div>

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using RenPyReader.DataModels;
 using RenPyReader.Utilities;
 using SQLitePCL;
@@ -24,7 +25,33 @@ namespace RenPyReader.Components.Shared
                 dbManager = new DBManager(databaseName);
             }
         }
-        
+
+        public async Task<HashSet<string>> GetBinaryEntriesNamesAsync(string baseName)
+        {
+            var result = new HashSet<string>();
+
+            try
+            {
+                if (baseName == "images")
+                {
+                    return await dbManager!.GetBinaryEntriesNamesAsync("images");
+                }
+                else if (baseName == "audios")
+                {
+                    return await dbManager!.GetBinaryEntriesNamesAsync("audios");
+                }
+                else
+                {
+                    throw new InvalidEnumArgumentException("Invalid binary base name.");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogBuffer.Add($"Exception caught: {ex.Message}");
+                return result;
+            }
+        }
+
         public async Task InsertImageAsync(RenPyImage renPyImage)
         {
             try

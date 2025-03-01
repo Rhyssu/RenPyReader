@@ -6,6 +6,18 @@
     <div class="file-handler-column small-column">
         <DatabaseHandler @ref="_databaseHandler" LogBuffer="_logBuffer" />
         <hr />
+        <div class="file-handler-switches">
+            <Switch Value="_parallelProcessing"
+                    Label="Enable parallel processing"
+                    Disabled="_isWorking"
+                    ValueExpression="() => _parallelProcessing"
+                    ValueChanged="ParallelProcessingChanged" />
+            <Switch Value="_newEntriesOnly" Label="Process only new files" 
+                    Disabled="_isWorking"
+                    ValueExpression="() => _newEntriesOnly"
+                    ValueChanged="NewEntriesOnlyChangedAsync" />
+        </div>
+        <hr />
         <div class="file-handler-buttons-wrapper">
             <Button Color="ButtonColor.Secondary"
                     Outline="true"
@@ -27,8 +39,8 @@
             </Button>
         </div>
         <hr />
-        <FilePropertyHandler @ref="_filePropertyHandler" />
-        <FileMemoryUsageHandler @ref="_fileMemoryUsageHandler" />
+        <FilePropertyHandler @ref="_nameHandler" Label="Name: " />
+        <FilePropertyHandler @ref="_progressHandler" Label="Processed entries: " />
     </div>
     <div class="file-handler-column small-column entry-list">
         @if (_zipEntriesNames != null && _zipEntriesNames.Any())

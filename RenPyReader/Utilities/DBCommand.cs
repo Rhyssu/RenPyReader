@@ -14,6 +14,8 @@
 
         GetRenPyBinaryBase,
 
+        GetRenPyBinaryBaseNames,
+
         CreateRenPyCharacterTable,
 
         InsertRenPyCharacter,

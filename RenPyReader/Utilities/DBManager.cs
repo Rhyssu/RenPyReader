@@ -39,6 +39,25 @@ namespace RenPyReader.Utilities
             }
         }
 
+        public async Task<HashSet<string>> GetBinaryEntriesNamesAsync(string baseName)
+        {
+            var names = new HashSet<string>();
+
+            await using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = DBCommand.GetRenPyBinaryBaseNames.ToSQLite(baseName);
+                await using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        names.Add(reader.GetString(0));
+                    }
+                }
+            }
+
+            return names;
+        }
+
         private void CreateTablesIfNotExist()
         {
             using (var command = _connection.CreateCommand())
