@@ -1,10 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 using RenPyReader.DataModels;
 using RenPyReader.Utilities;
-using SQLitePCL;
 using System.ComponentModel;
-using System.Threading.Tasks;
 
 namespace RenPyReader.Components.Shared
 {
@@ -57,6 +54,18 @@ namespace RenPyReader.Components.Shared
             try
             {
                 await dbManager!.InsertImageAsync(renPyImage);
+            }
+            catch (Exception ex)
+            {
+                LogBuffer.Add($"Exception caught: {ex.Message}");
+            }
+        }
+
+        public async Task InsertAudioAsync(RenPyAudio renPyAudio)
+        {
+            try
+            {
+                await dbManager!.InsertAudioAsync(renPyAudio);
             }
             catch (Exception ex)
             {

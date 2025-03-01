@@ -39,6 +39,18 @@ namespace RenPyReader.Utilities
             }
         }
 
+        public async Task InsertAudioAsync(RenPyAudio renPyAudio)
+        {
+            await using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = DBCommand.InsertRenPyBinaryBase.ToSQLite("audios");
+                command.Parameters.AddWithValue("@Name", renPyAudio.Name);
+                command.Parameters.AddWithValue("@Content", renPyAudio.Content);
+
+                await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+            }
+        }
+
         public async Task<HashSet<string>> GetBinaryEntriesNamesAsync(string baseName)
         {
             var names = new HashSet<string>();

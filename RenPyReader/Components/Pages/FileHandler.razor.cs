@@ -1,14 +1,10 @@
 ﻿using Microsoft.AspNetCore.Components;
 using RenPyReader.Components.Shared;
-using RenPyReader.DataModels;
 using RenPyReader.DataProcessing;
 using RenPyReader.Utilities;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Processing;
 using System.Diagnostics;
 using System.IO.Compression;
-using Image = SixLabors.ImageSharp.Image;
 
 namespace RenPyReader.Components.Pages
 {
@@ -25,6 +21,8 @@ namespace RenPyReader.Components.Pages
         private Dictionary<string, Func<ZipArchiveEntry, Task>>? _fileHandlers;
 
         private ImageProcessor? _imageProcessor;
+
+        private AudioProcessor? _audioProcessor;
 
         private FileResult? _selectedFile;
         
@@ -200,14 +198,22 @@ namespace RenPyReader.Components.Pages
 
         private async Task ProcessAudioFileAsync(ZipArchiveEntry entry)
         {
-            try
+            var skip = SkipAudioProcessing(entry.Name);
+            if (!skip)
             {
+                await _audioProcessor!.ProcessAudioAsync(entry);
+            }
+        }
 
-            }
-            catch (Exception ex)
+        private bool SkipAudioProcessing(string audioName)
+        {
+            var doesExist = false;
+            if (_newEntriesOnly && _audioEntries!.Count != 0)
             {
-                _logBuffer.Add($"Exception caught: {ex.Message}");
+                doesExist = _audioEntries.Contains(audioName);
             }
+
+            return doesExist;
         }
 
         private async Task ProcessRenPyFileAsync(ZipArchiveEntry entry)
