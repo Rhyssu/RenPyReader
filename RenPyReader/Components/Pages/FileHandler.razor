@@ -7,11 +7,6 @@
         <DatabaseHandler @ref="_databaseHandler" LogBuffer="_logBuffer" />
         <hr />
         <div class="file-handler-switches">
-            <Switch Value="_parallelProcessing"
-                    Label="Enable parallel processing"
-                    Disabled="_isWorking"
-                    ValueExpression="() => _parallelProcessing"
-                    ValueChanged="ParallelProcessingChanged" />
             <Switch Value="_newEntriesOnly" Label="Process only new files" 
                     Disabled="_isWorking"
                     ValueExpression="() => _newEntriesOnly"
@@ -28,17 +23,12 @@
             <Button Color="ButtonColor.Secondary"
                     Outline="true"
                     Disabled="!IsFileSelected"
-                    @onclick="async () => await HandleListEntriesAsync()">
-                ListEntries
-            </Button>
-            <Button Color="ButtonColor.Secondary"
-                    Outline="true"
-                    Disabled="!IsFileSelected"
                     @onclick="async () => await ProcessEntriesAsync()">
                 Process
             </Button>
         </div>
         <hr />
+        <ProgressBarHandler @ref="_progressBarHandler" />
         <FilePropertyHandler @ref="_nameHandler" Label="Name: " />
         <FilePropertyHandler @ref="_progressHandler" Label="Processed entries: " />
     </div>
