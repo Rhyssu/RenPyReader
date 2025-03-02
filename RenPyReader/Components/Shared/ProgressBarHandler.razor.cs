@@ -45,7 +45,7 @@ namespace RenPyReader.Components.Shared
                 _progress = 0;
             }
 
-            _label = $"{_progress}%";
+            _label = $"{Part} / {Total}";
             StateHasChanged();
         }
     }

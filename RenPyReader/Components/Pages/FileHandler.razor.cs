@@ -3,6 +3,8 @@ using RenPyReader.Components.Shared;
 using RenPyReader.DataProcessing;
 using RenPyReader.Utilities;
 using SixLabors.ImageSharp;
+using System.Collections.ObjectModel;
+using System.Data;
 using System.Diagnostics;
 using System.IO.Compression;
 
@@ -13,8 +15,6 @@ namespace RenPyReader.Components.Pages
         private DatabaseHandler? _databaseHandler;
 
         private FilePropertyHandler? _nameHandler;
-
-        private FilePropertyHandler? _progressHandler;
 
         private ProgressBarHandler? _progressBarHandler;
 
@@ -28,9 +28,9 @@ namespace RenPyReader.Components.Pages
         
         private LogBuffer _logBuffer = new(10000);
 
-        private PickOptions? _options;
+        private int _part, _total = 0;
 
-        private List<string>? _zipEntriesNames;
+        private PickOptions? _options;
 
         private bool _isWorking;
 
@@ -40,11 +40,9 @@ namespace RenPyReader.Components.Pages
 
         private HashSet<string>? _imageEntries;
 
-        private int _part = 0;
+        private EntryListHandler? _entryListHandler;
 
-        private int _total = 0;
-
-        private int _processedCount = 0;
+        private ObservableCollection<EntryItem>? EntryItems;
 
         protected override void OnAfterRender(bool firstRender)
         {
@@ -78,6 +76,7 @@ namespace RenPyReader.Components.Pages
                 };
 
                 _imageProcessor = new ImageProcessor(_databaseHandler!, _logBuffer);
+                _audioProcessor = new AudioProcessor(_databaseHandler!, _logBuffer);
             }
         }
 
@@ -133,11 +132,9 @@ namespace RenPyReader.Components.Pages
                 {
                     using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
                     {
-                        var entryProcessTasks = new List<Task>();
                         var entriesCount = archive.Entries.Count;
                         _logBuffer.Add($"Found {entriesCount} entries to process.");
                         _progressBarHandler!.SetTotal(entriesCount);
-                        _processedCount = 0;
                         StateHasChanged();
 
                         foreach (var (entry, index) in archive.Entries.Select((entry, index) => (entry, index)))
@@ -145,19 +142,19 @@ namespace RenPyReader.Components.Pages
                             _progressBarHandler!.SetAndUpdatePart(index);
                             if (entry.FullName.EndsWith('/'))
                             {
+                                _entryListHandler!.AddItem(entry.Name);
                                 continue;
                             }
 
                             var extension = Path.GetExtension(entry.Name);
                             if (string.IsNullOrEmpty(extension))
                             {
-                                return;
+                                continue;
                             }
 
                             if (_fileHandlers?.TryGetValue(extension, out var fileHandler) == true)
                             {
-                                entryProcessTasks.Add(fileHandler(entry));
-                                _processedCount += 1;
+                                await fileHandler(entry);
                             }
                         }
                     }
@@ -170,7 +167,6 @@ namespace RenPyReader.Components.Pages
             finally
             {
                 stopwatch.Stop();
-                _logBuffer.Add($"Finished processing. Processed {_processedCount} out of {_progressBarHandler!.GetTotal()} entries.");
                 _logBuffer.Add($"Processing took {stopwatch.ElapsedMilliseconds} ms in total.");
                 StopWorking();
             }
@@ -226,6 +222,19 @@ namespace RenPyReader.Components.Pages
             {
                 _logBuffer.Add($"Exception caught: {ex.Message}");
             }
+        }
+
+        private void PopulateEntryLists(ZipArchive archive)
+        {
+            foreach (var entry in archive.Entries)
+            {
+                if (!string.IsNullOrEmpty(entry.Name))
+                {
+                    _entryListHandler!.AddItem(entry.Name);
+                }
+            }
+
+            _entryListHandler!.UpdateState();
         }
 
         private async Task NewEntriesOnlyChangedAsync(bool value)

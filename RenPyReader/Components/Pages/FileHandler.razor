@@ -30,28 +30,14 @@
             </Button>
         </div>
         <hr />
-        <div class="file-handler-switches">
-            <Switch Value="_newEntriesOnly" Label="Process only new files" 
-                    Disabled="_isWorking"
-                    ValueExpression="() => _newEntriesOnly"
-                    ValueChanged="NewEntriesOnlyChangedAsync" />
-        </div>
+        <FilePropertyHandler Label="Processed image files:" />
+        <FilePropertyHandler Label="Processed audio files:" />
+        <FilePropertyHandler Label="Processed RenPy files:" />
+        <hr />
+        <ProgressBarHandler @ref="_progressBarHandler" />
     </div>
     <div class="file-handler-column small-column entry-list">
-        @if (_zipEntriesNames != null && _zipEntriesNames.Any())
-        {
-            <div class="file-handler-zip-entries">
-                @foreach (var entryName in _zipEntriesNames)
-                {
-                    @if (!string.IsNullOrEmpty(entryName))
-                    {
-                        <div class="file-handler-entry">
-                            @entryName
-                        </div>
-                    }
-                }
-            </div>
-        }
+        <EntryListHandler @ref="_entryListHandler" />
     </div>
     <div class="file-handler-column medium-column log-buffer">
         <div class="file-handler-process-output">
