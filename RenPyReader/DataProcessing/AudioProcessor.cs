@@ -1,6 +1,6 @@
 ﻿using NAudio.Lame;
 using NAudio.Wave;
-using RenPyReader.Components.Shared;
+using RenPyReader.Database;
 using RenPyReader.DataModels;
 using RenPyReader.Utilities;
 using System.IO.Compression;
@@ -8,10 +8,10 @@ using System.IO.Compression;
 namespace RenPyReader.DataProcessing
 {
     // Class responsible for processing and compressing audio files
-    internal partial class AudioProcessor(DatabaseHandler databaseHandler, LogBuffer logBuffer)
+    internal partial class AudioProcessor(RenPyDBManager renPyDBManager, LogBuffer logBuffer)
     {
         // Database handler for inserting audio files into the database
-        private readonly DatabaseHandler _databaseHandler = databaseHandler;
+        private readonly RenPyDBManager _renPyDBManager = renPyDBManager;
 
         // Log buffer for logging exceptions and messages
         private readonly LogBuffer _logBuffer = logBuffer;
@@ -67,7 +67,7 @@ namespace RenPyReader.DataProcessing
                 RenPyAudio renPyAudio = new RenPyAudio(entry.Name, compressedAudio);
 
                 // Insert the compressed audio into the database
-                await _databaseHandler.InsertAudioAsync(renPyAudio);
+                await _renPyDBManager.InsertAudioAsync(renPyAudio);
             }
         }
     }

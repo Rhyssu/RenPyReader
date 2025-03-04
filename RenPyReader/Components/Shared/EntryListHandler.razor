@@ -1,6 +1,7 @@
 <Virtualize Items="@EntryItems" MaxItemCount="25">
     <ItemContent>
-        <div style="background-color: @context.BackgroundColor.ToRgbaHex(); padding: 8px; width: -webkit-fill-available;">
+        <div style="background-color: @context.BackgroundColor.ToRgbaHex(); padding: 8px; width: -webkit-fill-available;"
+             title="@GetTooltipFromColor(context.BackgroundColor)">
             @context.EntryName
         </div>
     </ItemContent>

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using RenPyReader.Components.Shared;
+using RenPyReader.Database;
 using RenPyReader.DataProcessing;
 using RenPyReader.Utilities;
 using SixLabors.ImageSharp;
@@ -7,6 +8,8 @@ using System.Collections.ObjectModel;
 using System.Data;
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Runtime.Versioning;
+using Color = Microsoft.Maui.Graphics.Color;
 
 namespace RenPyReader.Components.Pages
 {
@@ -14,9 +17,17 @@ namespace RenPyReader.Components.Pages
     {
         private DatabaseHandler? _databaseHandler;
 
+        private DocumentDBManager? _documentDBManager;
+
         private FilePropertyHandler? _nameHandler;
 
         private ProgressBarHandler? _progressBarHandler;
+
+        private FilePropertyHandler? _imageCountHandler;
+
+        private FilePropertyHandler? _audioCountHandler;
+
+        private FilePropertyHandler? _renPyCountHandler;
 
         private Dictionary<string, Func<ZipArchiveEntry, Task>>? _fileHandlers;
 
@@ -25,10 +36,8 @@ namespace RenPyReader.Components.Pages
         private AudioProcessor? _audioProcessor;
 
         private FileResult? _selectedFile;
-        
-        private LogBuffer _logBuffer = new(10000);
 
-        private int _part, _total = 0;
+        private LogBuffer _logBuffer = new(10000);
 
         private PickOptions? _options;
 
@@ -36,13 +45,19 @@ namespace RenPyReader.Components.Pages
 
         private bool _newEntriesOnly;
 
+        private CancellationTokenSource? _cts;
+
         private HashSet<string>? _audioEntries;
 
         private HashSet<string>? _imageEntries;
 
+        private RenPyDBManager? _renPyDBManager;
+
         private EntryListHandler? _entryListHandler;
 
         private ObservableCollection<EntryItem>? EntryItems;
+
+        private int _imageCount, _audioCount, _renPyCount = 0;
 
         protected override void OnAfterRender(bool firstRender)
         {
@@ -57,7 +72,6 @@ namespace RenPyReader.Components.Pages
                         { DevicePlatform.WinUI, [".zip"] }
                     })
                 };
-
                 _fileHandlers = new Dictionary<string, Func<ZipArchiveEntry, Task>>(
                     StringComparer.OrdinalIgnoreCase)
                 {
@@ -75,11 +89,15 @@ namespace RenPyReader.Components.Pages
                     { ".rpy",   ProcessRenPyFileAsync }
                 };
 
-                _imageProcessor = new ImageProcessor(_databaseHandler!, _logBuffer);
-                _audioProcessor = new AudioProcessor(_databaseHandler!, _logBuffer);
+                _cts = new CancellationTokenSource();
+                string databaseName = _databaseHandler!.GetDatabaseName();
+                _renPyDBManager = new RenPyDBManager(databaseName);
+                _imageProcessor = new ImageProcessor(_renPyDBManager, _logBuffer);
+                _audioProcessor = new AudioProcessor(_renPyDBManager, _logBuffer);
             }
         }
 
+        [SupportedOSPlatform("windows10.0.17763.0")]
         private async Task HandleFilePickerAsync()
         {
             if (_options == null)
@@ -123,6 +141,7 @@ namespace RenPyReader.Components.Pages
 
             _logBuffer.Add($"Processing of {_selectedFile.FileName} started.");
             var stopwatch = new Stopwatch();
+            var cancellationToken = _cts!.Token;
             stopwatch.Start();
             StartWorking();
 
@@ -135,27 +154,39 @@ namespace RenPyReader.Components.Pages
                         var entriesCount = archive.Entries.Count;
                         _logBuffer.Add($"Found {entriesCount} entries to process.");
                         _progressBarHandler!.SetTotal(entriesCount);
+                        ClearProcessedCounts();
                         StateHasChanged();
 
                         foreach (var (entry, index) in archive.Entries.Select((entry, index) => (entry, index)))
                         {
-                            _progressBarHandler!.SetAndUpdatePart(index);
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                _logBuffer.Add("Processing was cancelled.");
+                                break;
+                            }
+
+                            _progressBarHandler.SetAndUpdatePart(index + 1);
                             if (entry.FullName.EndsWith('/'))
                             {
-                                _entryListHandler!.AddItem(entry.Name);
+                                AddEntryList(entry.FullName, Colors.LightYellow);
                                 continue;
                             }
 
                             var extension = Path.GetExtension(entry.Name);
                             if (string.IsNullOrEmpty(extension))
                             {
+                                AddEntryList(entry.Name, Colors.LightCoral);
                                 continue;
                             }
 
                             if (_fileHandlers?.TryGetValue(extension, out var fileHandler) == true)
                             {
+                                AddEntryList(entry.Name, Colors.PaleGreen);
                                 await fileHandler(entry);
+                                continue;
                             }
+
+                            AddEntryList(entry.Name, Colors.LightSalmon);
                         }
                     }
                 }
@@ -167,18 +198,41 @@ namespace RenPyReader.Components.Pages
             finally
             {
                 stopwatch.Stop();
+                _entryListHandler!.UpdateState();
                 _logBuffer.Add($"Processing took {stopwatch.ElapsedMilliseconds} ms in total.");
                 StopWorking();
             }
         }
 
+        private void AddEntryList(string entryName, Color newBackgroundColor)
+        {
+            if (!string.IsNullOrEmpty(entryName))
+            {
+                _entryListHandler!.AddItem(entryName, newBackgroundColor);
+            }
+        }
+
+        private void ClearProcessedCounts()
+        {
+            _imageCountHandler!.Value = "";
+            _imageCount = 0;
+
+            _audioCountHandler!.Value = "";
+            _audioCount = 0;
+
+            _renPyCountHandler!.Value = "";
+            _renPyCount = 0;
+        }
+
         private async Task ProcessImageFileAsync(ZipArchiveEntry entry)
         {
-            var skip = SkipImageProcessing(entry.Name);
-            if (!skip)
-            {
-                await _imageProcessor!.ProcessImageAsync(entry);
-            }
+            //var skip = SkipImageProcessing(entry.Name);
+            //if (!skip)
+            //{
+            //    await _imageProcessor!.ProcessImageAsync(entry);
+            //    _imageCountHandler!.Value = (_imageCount += 1).ToString();
+            //    _imageCountHandler!.Update();
+            //}
         }
 
         private bool SkipImageProcessing(string imageName)
@@ -194,11 +248,13 @@ namespace RenPyReader.Components.Pages
 
         private async Task ProcessAudioFileAsync(ZipArchiveEntry entry)
         {
-            var skip = SkipAudioProcessing(entry.Name);
-            if (!skip)
-            {
-                await _audioProcessor!.ProcessAudioAsync(entry);
-            }
+            //var skip = SkipAudioProcessing(entry.Name);
+            //if (!skip)
+            //{
+            //    await _audioProcessor!.ProcessAudioAsync(entry);
+            //    _audioCountHandler!.Value = (_audioCount += 1).ToString();
+            //    _audioCountHandler!.Update();
+            //}
         }
 
         private bool SkipAudioProcessing(string audioName)
@@ -214,54 +270,12 @@ namespace RenPyReader.Components.Pages
 
         private async Task ProcessRenPyFileAsync(ZipArchiveEntry entry)
         {
-            try
-            {
+            _renPyDBManager!.ClearRepository();
+            var renPyExtractor = new RenPyExtractor(_renPyDBManager!, _logBuffer);
+            await renPyExtractor.ExtractDataAndSave(entry);
 
-            }
-            catch (Exception ex)
-            {
-                _logBuffer.Add($"Exception caught: {ex.Message}");
-            }
-        }
-
-        private void PopulateEntryLists(ZipArchive archive)
-        {
-            foreach (var entry in archive.Entries)
-            {
-                if (!string.IsNullOrEmpty(entry.Name))
-                {
-                    _entryListHandler!.AddItem(entry.Name);
-                }
-            }
-
-            _entryListHandler!.UpdateState();
-        }
-
-        private async Task NewEntriesOnlyChangedAsync(bool value)
-        {
-            _newEntriesOnly = value;
-
-            if (value)
-            {
-                _logBuffer.Add("New entries only has been ENABLED. Only files that are not in the DB will be processed.");
-
-                _audioEntries = await _databaseHandler!.GetBinaryEntriesNamesAsync("audios");
-                _logBuffer.Add($"Retrieved {_audioEntries.Count} audio file entries.");
-
-                _imageEntries = await _databaseHandler!.GetBinaryEntriesNamesAsync("images");
-                _logBuffer.Add($"Retrieved {_imageEntries.Count} image file entries.");
-            }
-            else
-            {
-                _logBuffer.Add("New entries only has been DISABLED. All files will be processed.");
-
-                _audioEntries?.Clear();
-                _imageEntries?.Clear();
-
-                _logBuffer.Add("Cleared both audio and image entries names.");
-            }
-
-            StateHasChanged();
+            _renPyCountHandler!.Value = (_renPyCount += 1).ToString();
+            _renPyCountHandler!.Update();
         }
 
         private void StartWorking()

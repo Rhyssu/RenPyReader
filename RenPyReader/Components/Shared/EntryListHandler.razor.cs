@@ -8,12 +8,12 @@ namespace RenPyReader.Components.Shared
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public ObservableCollection<EntryItem> EntryItems { get; set; } = new();
 
-        public void AddItem(string entryName)
+        public void AddItem(string entryName, Color newBackgroundColor)
         {
             EntryItems.Add(new EntryItem 
             { 
                 EntryName = entryName, 
-                BackgroundColor = Colors.White 
+                BackgroundColor = newBackgroundColor
             });
         }
 
@@ -23,6 +23,18 @@ namespace RenPyReader.Components.Shared
             {
                 EntryItems[index].BackgroundColor = newBackgroundColor;
             }
+        }
+
+        public static string GetTooltipFromColor(Color color)
+        {
+            return color switch
+            {
+                var c when c == Colors.LightYellow      => "Entry is a directory.",
+                var c when c == Colors.LightCoral       => "Extension not present.",
+                var c when c == Colors.LightSeaGreen    => "Successfully processed file.",
+                var c when c == Colors.LightSalmon      => "Extension not supported.",
+                _                                       => "Unrecognizable color.",
+            };
         }
 
         public void UpdateState()

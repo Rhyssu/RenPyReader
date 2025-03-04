@@ -4,8 +4,7 @@
 
 <div class="file-handler-wrapper">
     <div class="file-handler-column small-column">
-        <DatabaseHandler @ref="_databaseHandler" 
-            LogBuffer="_logBuffer" />
+        <DatabaseHandler @ref="_databaseHandler" />
         <FilePropertyHandler @ref="_nameHandler" 
             Label="ZIP archive name:" 
             Hint="Hint: Use upload button to select archive file."/>
@@ -25,14 +24,15 @@
             </Button>
             <Button Color="ButtonColor.Secondary"
                     Outline="true"
-                    Disabled="!IsFileSelected">
+                    Disabled="!IsFileSelected"
+                @onclick="async () => await _cts!.CancelAsync()">
                 StopProcessing
             </Button>
         </div>
         <hr />
-        <FilePropertyHandler Label="Processed image files:" />
-        <FilePropertyHandler Label="Processed audio files:" />
-        <FilePropertyHandler Label="Processed RenPy files:" />
+        <FilePropertyHandler @ref="_imageCountHandler" Label="Processed image files:" />
+        <FilePropertyHandler @ref="_audioCountHandler" Label="Processed audio files:" />
+        <FilePropertyHandler @ref="_renPyCountHandler" Label="Processed RenPy files:" />
         <hr />
         <ProgressBarHandler @ref="_progressBarHandler" />
     </div>
