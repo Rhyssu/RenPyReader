@@ -16,11 +16,12 @@ namespace RenPyReader.Database
             }
         }
 
-        public async Task SaveDocumentAsync(string title, string content)
+        public async Task<long> SaveDocumentAsync(string title, string content)
         {
             using var transaction = _connection.BeginTransaction();
             try
             {
+                long rowId;
                 await using (var command = _connection.CreateCommand())
                 {
                     command.Transaction = transaction;
@@ -29,8 +30,15 @@ namespace RenPyReader.Database
                     command.Parameters.AddWithValue("@content", content);
 
                     command.ExecuteNonQuery();
+
+                    command.CommandText = "SELECT last_insert_rowid();";
+
+                    var result = command.ExecuteScalar();
+                    rowId = result != null ? (long)result : -1;
                     transaction.Commit();
                 }
+
+                return rowId;
             }
             catch
             {
@@ -74,6 +82,25 @@ namespace RenPyReader.Database
                 }
             }
             return result;
+        }
+
+        public async Task<List<(long rowID, string title)>> GetAllDocumentTitlesAsync()
+        {
+            var documents = new List<(long RowId, string Title)>();
+            await using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = "SELECT rowid, title FROM documents;";
+                await using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var rowID = reader.GetInt64(0);
+                        var title = reader.GetString(1);
+                        documents.Add((rowID, title));
+                    }
+                }
+            }
+            return documents;
         }
     }
 }

@@ -2,6 +2,7 @@
 using RenPyReader.Components.Shared;
 using RenPyReader.Database;
 using RenPyReader.DataProcessing;
+using RenPyReader.Entities;
 using RenPyReader.Utilities;
 using SixLabors.ImageSharp;
 using System.Collections.ObjectModel;
@@ -34,6 +35,8 @@ namespace RenPyReader.Components.Pages
         private ImageProcessor? _imageProcessor;
 
         private AudioProcessor? _audioProcessor;
+
+        private RenPyProcessor? _renPyProcessor;
 
         private FileResult? _selectedFile;
 
@@ -94,10 +97,10 @@ namespace RenPyReader.Components.Pages
                 _renPyDBManager = new RenPyDBManager(databaseName);
                 _imageProcessor = new ImageProcessor(_renPyDBManager, _logBuffer);
                 _audioProcessor = new AudioProcessor(_renPyDBManager, _logBuffer);
+                _renPyProcessor = new RenPyProcessor(_renPyDBManager);
             }
         }
 
-        [SupportedOSPlatform("windows10.0.17763.0")]
         private async Task HandleFilePickerAsync()
         {
             if (_options == null)
@@ -197,9 +200,11 @@ namespace RenPyReader.Components.Pages
             }
             finally
             {
-                stopwatch.Stop();
+                _renPyProcessor!.RenPyDataRepository.BatchSaveAll();
                 _entryListHandler!.UpdateState();
+                
                 _logBuffer.Add($"Processing took {stopwatch.ElapsedMilliseconds} ms in total.");
+                stopwatch.Stop();
                 StopWorking();
             }
         }
@@ -270,9 +275,10 @@ namespace RenPyReader.Components.Pages
 
         private async Task ProcessRenPyFileAsync(ZipArchiveEntry entry)
         {
-            _renPyDBManager!.ClearRepository();
-            var renPyExtractor = new RenPyExtractor(_renPyDBManager!, _logBuffer);
-            await renPyExtractor.ExtractDataAndSave(entry);
+            var renPyExtractor = new RenPyExtractor(_renPyDBManager!);
+            (Int64 rowID, string content) 
+                = await renPyExtractor.ExtractDataAndSave(entry);
+            await _renPyProcessor!.ProcessFileContentAsync(rowID, content);
 
             _renPyCountHandler!.Value = (_renPyCount += 1).ToString();
             _renPyCountHandler!.Update();
