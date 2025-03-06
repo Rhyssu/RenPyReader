@@ -1,0 +1,25 @@
+﻿using RenPyReader.Utilities;
+
+namespace RenPyReader.Services
+{
+    internal interface ISQLiteService
+    {
+        Task<List<string>> GetTableNamesAsync();
+
+        void BatchInsertOrIgnoreSet(string tableName, OrderedSet<string> entries);
+
+        void BatchInsertOrIgnoreMap(string tableName, OrderedSet<(Int64 ParentRowID, int ElementID, int LineIndex)> maps);
+
+        Task<OrderedSet<string>> GetOrderedSet(string tableName);
+
+        Task<OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)>> GetOrderedMap(string tableName);
+
+        Task<long> SaveDocumentAsync(string title, string content);
+
+        Task<bool> DoesDocumentExistAsync(string title);
+
+        Task<string> GetDocumentContentAsync(string title);
+
+        Task<List<(long rowID, string title)>> GetAllDocumentTitlesAsync();
+    }
+}

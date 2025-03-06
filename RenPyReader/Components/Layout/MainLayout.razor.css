@@ -12,6 +12,20 @@
         color: black;
     }
 
+.navbar-button {
+    padding: 16px;
+    align-content: center;
+    height: 100%;
+}
+
+    .navbar-button:hover {
+        background-color: darkgray;
+    }
+
+    .navbar-button h4 {
+        margin: 0;
+    }
+
 .body-wrapper {
     height: 80vh;
 }

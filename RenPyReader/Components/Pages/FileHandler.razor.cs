@@ -2,14 +2,12 @@
 using RenPyReader.Components.Shared;
 using RenPyReader.Database;
 using RenPyReader.DataProcessing;
-using RenPyReader.Entities;
 using RenPyReader.Utilities;
 using SixLabors.ImageSharp;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Diagnostics;
 using System.IO.Compression;
-using System.Runtime.Versioning;
 using Color = Microsoft.Maui.Graphics.Color;
 
 namespace RenPyReader.Components.Pages
@@ -17,8 +15,6 @@ namespace RenPyReader.Components.Pages
     public partial class FileHandler : ComponentBase
     {
         private DatabaseHandler? _databaseHandler;
-
-        private DocumentDBManager? _documentDBManager;
 
         private FilePropertyHandler? _nameHandler;
 
@@ -201,6 +197,7 @@ namespace RenPyReader.Components.Pages
             finally
             {
                 _renPyProcessor!.RenPyDataRepository.BatchSaveAll();
+                StateService.SetDataRepository(_renPyProcessor.RenPyDataRepository);
                 _entryListHandler!.UpdateState();
                 
                 _logBuffer.Add($"Processing took {stopwatch.ElapsedMilliseconds} ms in total.");

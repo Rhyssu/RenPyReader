@@ -73,7 +73,7 @@ namespace RenPyReader.Database
             }
         }
 
-        internal async Task<OrderedSet<string>> GetTableOrderedSet(string tableName)
+        internal async Task<OrderedSet<string>> GetOrderedSet(string tableName)
         {
             var result = new OrderedSet<string>();
             using (var command = _connection.CreateCommand())
@@ -90,7 +90,7 @@ namespace RenPyReader.Database
             return result;
         }
 
-        internal async Task<OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)>> GetTableOrderedMap(string tableName)
+        internal async Task<OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)>> GetOrderedMap(string tableName)
         {
             var result = new OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)>();
             using (var command = _connection.CreateCommand())
