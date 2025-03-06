@@ -36,10 +36,13 @@ namespace RenPyReader.Entities
         {
             Events = await _renPyDBManager.GetTableOrderedSet(nameof(Events).ToLowerInvariant());
             EventsMap = await _renPyDBManager.GetTableOrderedMap(nameof(Events).ToLowerInvariant());
+
             Scenes = await _renPyDBManager.GetTableOrderedSet(nameof(Scenes).ToLowerInvariant());
             ScenesMap = await _renPyDBManager.GetTableOrderedMap(nameof(Scenes).ToLowerInvariant());
+
             Sounds = await _renPyDBManager.GetTableOrderedSet(nameof(Sounds).ToLowerInvariant());
             SoundsMap = await _renPyDBManager.GetTableOrderedMap(nameof(Sounds).ToLowerInvariant());
+
             Musics = await _renPyDBManager.GetTableOrderedSet(nameof(Musics).ToLowerInvariant());
             MusicsMap = await _renPyDBManager.GetTableOrderedMap(nameof(Musics).ToLowerInvariant());
         }
@@ -48,10 +51,13 @@ namespace RenPyReader.Entities
         {
             _renPyDBManager.BatchInsertOrIgnore(nameof(Events).ToLowerInvariant(), Events);
             _renPyDBManager.BatchInsertOrIgnoreMap(nameof(Events).ToLowerInvariant(), EventsMap);
+
             _renPyDBManager.BatchInsertOrIgnore(nameof(Scenes).ToLowerInvariant(), Scenes);
             _renPyDBManager.BatchInsertOrIgnoreMap(nameof(Scenes).ToLowerInvariant(), ScenesMap);
+
             _renPyDBManager.BatchInsertOrIgnore(nameof(Sounds).ToLowerInvariant(), Sounds);
             _renPyDBManager.BatchInsertOrIgnoreMap(nameof(Sounds).ToLowerInvariant(), SoundsMap);
+
             _renPyDBManager.BatchInsertOrIgnore(nameof(Musics).ToLowerInvariant(), Musics);
             _renPyDBManager.BatchInsertOrIgnoreMap(nameof(Musics).ToLowerInvariant(), MusicsMap);
         }
