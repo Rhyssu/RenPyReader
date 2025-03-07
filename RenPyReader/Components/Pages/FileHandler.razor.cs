@@ -273,9 +273,14 @@ namespace RenPyReader.Components.Pages
         private async Task ProcessRenPyFileAsync(ZipArchiveEntry entry)
         {
             var renPyExtractor = new RenPyExtractor(_renPyDBManager!);
-            (Int64 rowID, string content) 
-                = await renPyExtractor.ExtractDataAndSave(entry);
+            var blockProcessor = new BlockProcessor();
+            (Int64 rowID, string content) = await renPyExtractor.ExtractDataAndSave(entry);
             await _renPyProcessor!.ProcessFileContentAsync(rowID, content);
+            await blockProcessor.ProcessFileContentAsync(content);
+            if (blockProcessor.BlocksReadSuccessfull != true)
+            {
+
+            }
 
             _renPyCountHandler!.Value = (_renPyCount += 1).ToString();
             _renPyCountHandler!.Update();

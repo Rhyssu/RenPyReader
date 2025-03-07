@@ -36,6 +36,8 @@ namespace RenPyReader.Services
 
         private const string DocumentsDefaultTableName = "documents";
 
+        private const string CharactersDefaultTableName = "characters";
+
         private readonly SqliteConnection? _connection;
 
         public SQLiteService()
@@ -85,34 +87,35 @@ namespace RenPyReader.Services
             }
 
             CreateFTS5TableIfNotExist();
+            CreateCharacterTableIfNotExist();
         }
 
         private void CreateBaseTableIfNotExist(string tableName)
         {
-            using (var command = _connection!.CreateCommand())
-            {
-                command.CommandText = $@"CREATE TABLE IF NOT EXISTS {tableName} (ID INTEGER PRIMARY KEY, Name TEXT NOT NULL UNIQUE);";
-                command.ExecuteNonQuery();
-
-                command.CommandText = $@"CREATE TABLE IF NOT EXISTS {tableName + "Map"} (ID INTEGER PRIMARY KEY, ParentRow INTEGER, ElementRow INTEGER, LineIndex INTEGER);";
-                command.ExecuteNonQuery();
-            }
+            ExecuteNonQueryCommand($@"CREATE TABLE IF NOT EXISTS {tableName} (ID INTEGER PRIMARY KEY, Name TEXT NOT NULL UNIQUE);");
+            ExecuteNonQueryCommand($@"CREATE TABLE IF NOT EXISTS {tableName + "Map"} (ID INTEGER PRIMARY KEY, ParentRow INTEGER, ElementRow INTEGER, LineIndex INTEGER);");
         }
 
         private void CreateBinaryTableIfNotExist(string tableName)
         {
-            using (var command = _connection!.CreateCommand())
-            {
-                command.CommandText = $@"CREATE TABLE IF NOT EXISTS {tableName} (Name TEXT PRIMARY KEY, Content BLOB NOT NULL);";
-                command.ExecuteNonQuery();
-            }
+            ExecuteNonQueryCommand($@"CREATE TABLE IF NOT EXISTS {tableName} (Name TEXT PRIMARY KEY, Content BLOB NOT NULL);");
         }
 
         private void CreateFTS5TableIfNotExist()
         {
+            ExecuteNonQueryCommand($@"CREATE VIRTUAL TABLE IF NOT EXISTS {DocumentsDefaultTableName} USING fts5(title, content);");
+        }
+
+        private void CreateCharacterTableIfNotExist()
+        {
+            ExecuteNonQueryCommand($@"CREATE TABLE IF NOT EXISTS {CharactersDefaultTableName} (Code TEXT PRIMARY KEY, Name TEXT NOT NULL, Color TEXT NOT NULL);");
+        }
+
+        private void ExecuteNonQueryCommand(string commandText)
+        {
             using (var command = _connection!.CreateCommand())
             {
-                command.CommandText = $@"CREATE VIRTUAL TABLE IF NOT EXISTS {DocumentsDefaultTableName} USING fts5(title, content);";
+                command.CommandText = commandText;
                 command.ExecuteNonQuery();
             }
         }
