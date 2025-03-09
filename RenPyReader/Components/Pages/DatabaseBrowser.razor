@@ -24,12 +24,18 @@
                     <tr>
                         @foreach (var columnName in _tableData[0].Keys)
                         {
-                            <th>@columnName</th>
+                            <th>
+                                @columnName
+                                <input type="text"
+                                    style="margin-left: 8px;"
+                                    @oninput="e => OnFilterTextChanged(e, columnName)" 
+                                    placeholder="Filter by @columnName" />
+                            </th>
                         }
                     </tr>
                 </thead>
                 <tbody>
-                    <Virtualize Items="@_tableData" Context="row">
+                    <Virtualize Items="@_filteredTableData" Context="row">
                         <tr>
                             @foreach (var column in row.Values)
                             {
