@@ -143,6 +143,35 @@ namespace RenPyReader.Services
             return result;
         }
 
+        async Task<List<Dictionary<string, string>>> ISQLiteService.GetTableDataAsync(string tableName)
+        {
+            var result = new List<Dictionary<string, string>>();
+            if (_connection == null)
+            {
+                return result;
+            }
+
+            using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = @$"SELECT * FROM {tableName};";
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        Dictionary<string, string> row = new();
+                        for (var i = 0; i < reader.FieldCount; i++)
+                        {
+                            row.Add(reader.GetName(i), reader.GetString(i));
+                        }
+
+                        result.Add(row);
+                    }
+                }
+            }
+
+            return result;
+        }
+
         void ISQLiteService.BatchInsertOrIgnoreSet(string tableName, OrderedSet<string> entries)
         {
             if (_connection == null)

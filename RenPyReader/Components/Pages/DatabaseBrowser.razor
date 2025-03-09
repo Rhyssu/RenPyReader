@@ -3,4 +3,42 @@
 @inject IApplicationStateService StateService
 @inject ISQLiteService SQLiteService
 
-<h1>Database Browser</h1>
+<div class="database-browser-wrapper">
+    <div class="database-browser-column small-column table-names">
+        @foreach (var tableName in _tableNames)
+        {
+            <div class="table-name" @onclick="() => OnSelectedTableName(tableName)">
+                <h5>@tableName</h5>
+            </div>
+        }
+    </div>
+    <div class="database-browser-column big-column table-data">
+        @if (_tableData == null || _tableData.Count == 0)
+        {
+            <p>No data to display.</p>
+        }
+        else
+        {
+            <table class="table table-striped table-bordered" style="padding-top: 0px; overflow-y: auto;">
+                <thead class="thead-dark">
+                    <tr>
+                        @foreach (var columnName in _tableData[0].Keys)
+                        {
+                            <th>@columnName</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    <Virtualize Items="@_tableData" Context="row">
+                        <tr>
+                            @foreach (var column in row.Values)
+                            {
+                                <td>@column</td>
+                            }
+                        </tr>
+                    </Virtualize>
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

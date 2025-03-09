@@ -1,0 +1,46 @@
+﻿.database-browser-wrapper {
+    display: flex;
+    flex-direction: row;    
+}
+
+.database-browser-column {
+    height: 80vh;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    padding-top: 32px;
+    padding-bottom: 32px;
+    gap: 16px;
+    border-right: dotted lightgray 2px;
+}
+
+.small-column {
+    width: 20vw;
+}
+
+.big-column {
+    width: 80vw;
+}
+
+.table-data {
+    overflow-y: auto;
+    padding-top: 0px;
+}
+
+.table-names {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    overflow-y: auto;
+    align-items: flex-start;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+.table-name {
+    padding: 8px;
+    width: -webkit-fill-available;
+}
+
+.table-name:hover {
+    background-color: lightgray;
+}

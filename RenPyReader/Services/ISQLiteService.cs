@@ -6,6 +6,8 @@ namespace RenPyReader.Services
     {
         Task<List<string>> GetTableNamesAsync();
 
+        Task<List<Dictionary<string, string>>> GetTableDataAsync(string tableName);
+
         void BatchInsertOrIgnoreSet(string tableName, OrderedSet<string> entries);
 
         void BatchInsertOrIgnoreMap(string tableName, OrderedSet<(Int64 ParentRowID, int ElementID, int LineIndex)> maps);

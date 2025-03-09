@@ -1,7 +1,4 @@
-﻿using Microsoft.Maui.Animations;
-using System;
-
-namespace RenPyReader.DataProcessing
+﻿namespace RenPyReader.DataProcessing
 {
     internal class BlockProcessor
     {
