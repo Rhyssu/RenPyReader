@@ -14,7 +14,7 @@ namespace RenPyReader.Services
 
         Task<OrderedSet<string>> GetOrderedSet(string tableName);
 
-        Task<OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)>> GetOrderedMap(string tableName);
+        Task<OrderedSet<Entities.MapEntry>> GetOrderedMap(string tableName);
 
         Task<long> SaveDocumentAsync(string title, string content);
 

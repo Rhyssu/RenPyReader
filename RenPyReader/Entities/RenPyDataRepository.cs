@@ -5,32 +5,52 @@ namespace RenPyReader.Entities
 {
     internal class RenPyDataRepository
     {
-        // Ordered sets to store different types of data
+        #region Events
+        
         public OrderedSet<string> Events { get; set; } = new();
-        public OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)> EventsMap { get; set; } = new();
+
+        public OrderedSet<MapEntry> EventsMap { get; set; } = new();
+
+        #endregion Events
+
+        #region Scenes
 
         public OrderedSet<string> Scenes { get; set; } = new();
-        public OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)> ScenesMap { get; set; } = new();
+        
+        public OrderedSet<MapEntry> ScenesMap { get; set; } = new();
+
+        #endregion Scenes
+
+        #region Sounds
 
         public OrderedSet<string> Sounds { get; set; } = new();
-        public OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)> SoundsMap { get; set; } = new();
+        
+        public OrderedSet<MapEntry> SoundsMap { get; set; } = new();
+
+        #endregion Sounds
+
+        #region Musics
 
         public OrderedSet<string> Musics { get; set; } = new();
-        public OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)> MusicsMap { get; set; } = new();
+        
+        public OrderedSet<MapEntry> MusicsMap { get; set; } = new();
+
+        #endregion Musics
+
+        #region Documents
 
         public OrderedSet<string> DocumentNames { get; set; } = new();
 
-        // Reference to the database manager
+        #endregion Documents
+
         private readonly RenPyDBManager _renPyDBManager;
 
-        // Constructor to initialize the repository with the database manager
         public RenPyDataRepository(RenPyDBManager renPyDBManager)
         {
             _renPyDBManager = renPyDBManager;
             InitializeDataAsync();
         }
 
-        // Asynchronous method to initialize data sets and maps
         private async void InitializeDataAsync()
         {
             await InitializeSetAndMapAsync(nameof(Events).ToLowerInvariant(), Events, EventsMap);
@@ -39,14 +59,17 @@ namespace RenPyReader.Entities
             await InitializeSetAndMapAsync(nameof(Musics).ToLowerInvariant(), Musics, MusicsMap);
         }
 
-        // Generic method to initialize a set and its corresponding map from the database
-        private async Task InitializeSetAndMapAsync(string tableName, OrderedSet<string> set, OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)> map)
+        private async Task InitializeSetAndMapAsync(string tableName, OrderedSet<string> set, OrderedSet<MapEntry> map)
         {
+            ArgumentNullException.ThrowIfNull(set);
+            ArgumentNullException.ThrowIfNull(map);
+
+            #pragma warning disable IDE0059 // Unnecessary assignment of a value
             set = await _renPyDBManager.GetOrderedSet(tableName);
             map = await _renPyDBManager.GetOrderedMap(tableName);
+            #pragma warning restore IDE0059 // Unnecessary assignment of a value
         }
 
-        // Method to batch save all data sets and maps to the database
         public void BatchSaveAll()
         {
             BatchSave(nameof(Events).ToLowerInvariant(), Events, EventsMap);
@@ -55,11 +78,23 @@ namespace RenPyReader.Entities
             BatchSave(nameof(Musics).ToLowerInvariant(), Musics, MusicsMap);
         }
 
-        // Generic method to batch save a set and its corresponding map to the database
-        private void BatchSave(string tableName, OrderedSet<string> set, OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)> map)
+        private void BatchSave(string tableName, OrderedSet<string> set, OrderedSet<MapEntry> map)
         {
             _renPyDBManager.BatchInsertOrIgnore(tableName, set);
             _renPyDBManager.BatchInsertOrIgnoreMap(tableName, map);
+        }
+    }
+
+    internal record struct MapEntry(long ParentRowID, int ElementRowID, int LineIndex)
+    {
+        public static implicit operator (long ParentRowID, int ElementRowID, int LineIndex)(MapEntry value)
+        {
+            return (value.ParentRowID, value.ElementRowID, value.LineIndex);
+        }
+
+        public static implicit operator MapEntry((long ParentRowID, int ElementRowID, int LineIndex) value)
+        {
+            return new MapEntry(value.ParentRowID, value.ElementRowID, value.LineIndex);
         }
     }
 }

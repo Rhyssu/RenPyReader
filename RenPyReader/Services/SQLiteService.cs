@@ -263,9 +263,9 @@ namespace RenPyReader.Services
             return result;
         }
 
-        async Task<OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)>> ISQLiteService.GetOrderedMap(string tableName)
+        async Task<OrderedSet<Entities.MapEntry>> ISQLiteService.GetOrderedMap(string tableName)
         {
-            var result = new OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)>();
+            var result = new OrderedSet<Entities.MapEntry>();
             if (_connection == null)
             {
                 return result;

@@ -6,21 +6,19 @@ namespace RenPyReader.Components.Pages
     {
         private List<string> _tableNames = new();
 
-        private string _errorMessage = string.Empty;
-
-        private string _selectedTableName = string.Empty;
-
         private List<Dictionary<string, string>> _tableData = new();
 
         private List<Dictionary<string, string>> _filteredTableData = new();
 
-        private bool _isWorking;
+        private string _errorMessage = string.Empty;
+
+        private string _selectedTableName = string.Empty;
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender)
             {
-                _isWorking = true;
+                _errorMessage = string.Empty;
                 StateHasChanged();
 
                 try
@@ -30,11 +28,10 @@ namespace RenPyReader.Components.Pages
                 }
                 catch (Exception ex)
                 {
-                    _errorMessage = ex.Message;
+                    _errorMessage = ex.Message; 
                 }
                 finally
                 {
-                    _isWorking = false;
                     StateHasChanged();
                 }
             }
@@ -42,7 +39,8 @@ namespace RenPyReader.Components.Pages
 
         private async Task OnSelectedTableName(string tableName)
         {
-            _isWorking = true;
+            _errorMessage = string.Empty;
+            _selectedTableName = tableName;
             StateHasChanged();
 
             try
@@ -50,13 +48,13 @@ namespace RenPyReader.Components.Pages
                 _tableData = await SQLiteService.GetTableDataAsync(tableName);
                 _filteredTableData = _tableData;
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 _errorMessage = ex.Message;
+                _selectedTableName = string.Empty;
             }
             finally
             {
-                _isWorking = false;
                 StateHasChanged();
             }
         }
@@ -86,5 +84,10 @@ namespace RenPyReader.Components.Pages
                 }
             }
         }
+
+        private string GetSelectedTableNameStyle(string tableName)
+        {
+            return tableName.Equals(_selectedTableName, StringComparison.OrdinalIgnoreCase) ? "background-color: lightgray;" : string.Empty;
+        }   
     }
 }

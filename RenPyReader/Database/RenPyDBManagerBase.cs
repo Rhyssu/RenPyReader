@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.Sqlite;
+using RenPyReader.Entities;
 using RenPyReader.Utilities;
 
 namespace RenPyReader.Database
@@ -42,7 +43,7 @@ namespace RenPyReader.Database
             }
         }
 
-        internal void BatchInsertOrIgnoreMap(string tableName, OrderedSet<(Int64 ParentRowID, int ElementID, int LineIndex)> maps)
+        internal void BatchInsertOrIgnoreMap(string tableName, OrderedSet<MapEntry> mapEntries)
         {
             using (var transaction = _connection.BeginTransaction())
             {
@@ -55,7 +56,7 @@ namespace RenPyReader.Database
                         var elementIDParameter = command.Parameters.Add("@ElementRow", SqliteType.Integer);
                         var LineIndexParameter = command.Parameters.Add("@LineIndex", SqliteType.Integer);
 
-                        foreach (var (ParentID, ElementID, LineIndex) in maps)
+                        foreach (var (ParentID, ElementID, LineIndex) in mapEntries)
                         {
                             command.Parameters["@ParentRow"].Value = ParentID;
                             command.Parameters["@ElementRow"].Value = ElementID;
@@ -90,9 +91,9 @@ namespace RenPyReader.Database
             return result;
         }
 
-        internal async Task<OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)>> GetOrderedMap(string tableName)
+        internal async Task<OrderedSet<Entities.MapEntry>> GetOrderedMap(string tableName)
         {
-            var result = new OrderedSet<(Int64 ParentRowID, int ElementRowID, int LineIndex)>();
+            var result = new OrderedSet<Entities.MapEntry>();
             using (var command = _connection.CreateCommand())
             {
                 command.CommandText = $"SELECT ID, ParentRow, ElementRow from {tableName + "Map"};";
