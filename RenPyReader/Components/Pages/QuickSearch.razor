@@ -1,2 +1,13 @@
 @page "/quickSearch"
-<h1>Quick Search</h1>
+@using RenPyReader.Services
+@inject ISQLiteService SQLiteService
+
+<input @bind="InputText" @onkeydown="HandleKeyDown" type="text" placeholder="Type something and press Enter" />
+@foreach (var searchResult in SearchResults)
+{
+    <div>
+        <p>
+            @searchResult.Content
+        </p>
+    </div>
+}

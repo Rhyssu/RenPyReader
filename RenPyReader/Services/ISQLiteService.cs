@@ -1,4 +1,5 @@
-﻿using RenPyReader.Utilities;
+﻿using RenPyReader.DataModels;
+using RenPyReader.Utilities;
 
 namespace RenPyReader.Services
 {
@@ -23,5 +24,7 @@ namespace RenPyReader.Services
         Task<string> GetDocumentContentAsync(string title);
 
         Task<List<(long rowID, string title)>> GetAllDocumentTitlesAsync();
+
+        Task<List<RenPySearchResult>> QuickSearchAsync(string searchPhrase, bool useFullWord = false);
     }
 }

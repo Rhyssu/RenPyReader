@@ -1,6 +1,9 @@
 ﻿using Microsoft.Data.Sqlite;
+using RenPyReader.DataModels;
 using RenPyReader.Utilities;
 using SQLitePCL;
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 
 namespace RenPyReader.Services
 {
@@ -39,6 +42,8 @@ namespace RenPyReader.Services
         private const string CharactersDefaultTableName = "characters";
 
         private readonly SqliteConnection? _connection;
+
+        private static readonly ConcurrentDictionary<string, Regex> _regexCache = new();
 
         public SQLiteService()
         {
@@ -393,6 +398,50 @@ namespace RenPyReader.Services
             }
 
             return documents;
+        }
+
+        public async Task<List<RenPySearchResult>> QuickSearchAsync(string searchPhrase, bool useFullWord = false)
+        {
+            var searchResults = new List<RenPySearchResult>();
+            if (_connection == null)
+            {
+                return searchResults;
+            }   
+
+            await using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = "SELECT title, content, rowid FROM documents WHERE content MATCH @searchPhrase;";
+                command.Parameters.AddWithValue("@searchPhrase", searchPhrase);
+                using var reader = await command.ExecuteReaderAsync();
+                Regex? wordRegex = useFullWord
+                ? _regexCache.GetOrAdd(searchPhrase, key => new Regex($@"\b{Regex.Escape(key)}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+                : null;
+
+                while (await reader.ReadAsync())
+                {
+                    var title       = reader.GetString(0);
+                    var content     = reader.GetString(1);
+                    var parentId    = reader.GetInt32(2);
+
+                    int lineNumber = 0;
+                    string? currentLine;
+                    using var stringReader = new StringReader(content);
+                    while ((currentLine = await stringReader.ReadLineAsync()) != null)
+                    {
+                        lineNumber++;
+                        bool containsSearchTerm = wordRegex != null
+                            ? wordRegex.IsMatch(currentLine)
+                            : currentLine.Contains(searchPhrase, StringComparison.OrdinalIgnoreCase);
+
+                        if (containsSearchTerm)
+                        {
+                            searchResults.Add(new RenPySearchResult(title, currentLine, lineNumber, parentId));
+                        }
+                    }
+                }
+            }
+
+            return searchResults;
         }
     }
 }
