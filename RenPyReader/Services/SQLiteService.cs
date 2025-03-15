@@ -278,7 +278,7 @@ namespace RenPyReader.Services
 
             using (var command = _connection.CreateCommand())
             {
-                command.CommandText = $"SELECT ID, ParentRow, ElementRow from {tableName + "Map"};";
+                command.CommandText = $"SELECT ParentRow, ElementRow, LineIndex from {tableName + "Map"};";
                 await using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())

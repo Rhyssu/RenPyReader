@@ -42,6 +42,22 @@ namespace RenPyReader.Utilities
 
         public int Count => _set.Count;
 
+        public T this[int index]
+        {
+            get => _list[index];
+            set
+            {
+                if (_set.Contains(value))
+                {
+                    _list[index] = value;
+                }
+                else
+                {
+                    throw new ArgumentException("Item not found in the set.");
+                }
+            }
+        }
+
         public IEnumerator<T> GetEnumerator()
         {
             return _list.GetEnumerator();

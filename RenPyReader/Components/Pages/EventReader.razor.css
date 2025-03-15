@@ -1,0 +1,22 @@
+﻿.scrollable-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+
+.list-item {
+    margin-bottom: 10px;
+}
+
+.item-header {
+    font-weight: bold;
+}
+
+.subitems {
+    margin-left: 20px;
+}
+
+.subitem {
+    margin-bottom: 5px;
+}

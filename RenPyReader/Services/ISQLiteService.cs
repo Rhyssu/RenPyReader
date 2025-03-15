@@ -1,4 +1,5 @@
 ﻿using RenPyReader.DataModels;
+using RenPyReader.Entities;
 using RenPyReader.Utilities;
 
 namespace RenPyReader.Services
@@ -15,7 +16,7 @@ namespace RenPyReader.Services
 
         Task<OrderedSet<string>> GetOrderedSet(string tableName);
 
-        Task<OrderedSet<Entities.MapEntry>> GetOrderedMap(string tableName);
+        Task<OrderedSet<MapEntry>> GetOrderedMap(string tableName);
 
         Task<long> SaveDocumentAsync(string title, string content);
 

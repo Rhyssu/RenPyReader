@@ -24,7 +24,7 @@ namespace RenPyReader.Components.Pages
                 try
                 {
                     _tableNames = await SQLiteService.GetTableNamesAsync();
-                    _tableNames = _tableNames.Where(tn => !tn.Contains("documents")).ToList();
+                    _tableNames = [.. _tableNames.Where(tn => !tn.Contains("documents"))];
                 }
                 catch (Exception ex)
                 {
@@ -70,17 +70,16 @@ namespace RenPyReader.Components.Pages
             {
                 bool isNumericColumn = _tableData.FirstOrDefault()?.ContainsKey(columnName) == true 
                     && double.TryParse(_tableData.First()[columnName], out _);
+
                 if (isNumericColumn)
                 {
-                    _filteredTableData = _tableData.Where(row => row[columnName]?
-                    .Equals(filterText, StringComparison.OrdinalIgnoreCase) == true)
-                    .ToList();
+                    _filteredTableData = [.. _tableData.Where(row => row[columnName]?
+                    .Equals(filterText, StringComparison.OrdinalIgnoreCase) == true)];
                 }
                 else
                 {
-                    _filteredTableData = _tableData.Where(row => row[columnName]?
-                    .Contains(filterText, StringComparison.OrdinalIgnoreCase) == true)
-                    .ToList();
+                    _filteredTableData = [.. _tableData.Where(row => row[columnName]?
+                    .Contains(filterText, StringComparison.OrdinalIgnoreCase) == true)];
                 }
             }
         }

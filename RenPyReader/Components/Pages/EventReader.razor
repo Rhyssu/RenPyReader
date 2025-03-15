@@ -1,2 +1,26 @@
 @page "/eventReader"
-<h1>Event Reader</h1>
+@using RenPyReader.Services
+@inject ISQLiteService SQLiteService
+<input @bind="_inputText" @onkeydown="HandleKeyDown" type="text" placeholder="Type something and press Enter" />
+
+<div class="scrollable-list">
+    @foreach (var eventSearchResult in _eventSearchResultMap)
+    {
+        <div class="list-item">
+            @* <div class="item-header">
+                @GetFilteredEventHeader(eventSearchResult.Item1, eventSearchResult.Item2)
+            </div>
+            @if (eventSearchResult.Item3 != null && eventSearchResult.Item3.Any())
+            {
+                <div class="subitems">
+                    @foreach (var searchResultContent in eventSearchResult.Item3)
+                    {
+                        <div class="subitem">
+                            @searchResultContent
+                        </div>
+                    }
+                </div>
+            } *@
+        </div>
+    }
+</div>
