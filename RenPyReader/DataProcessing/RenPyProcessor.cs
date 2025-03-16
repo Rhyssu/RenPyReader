@@ -1,5 +1,6 @@
-﻿using RenPyReader.Database;
+﻿using RenPyReader.DataModels;
 using RenPyReader.Entities;
+using RenPyReader.Services;
 using RenPyReader.Utilities;
 
 namespace RenPyReader.DataProcessing
@@ -8,26 +9,26 @@ namespace RenPyReader.DataProcessing
     {
         public RenPyDataRepository RenPyDataRepository { get; set; }
 
-        private delegate bool StringCondition(string input);
+        public ISQLiteService SqliteService { get; }
 
-        private delegate void StringAction(Int64 rowID, int index, string input);
+        private delegate bool StringCondition(string conditionStr);
 
-        private readonly RenPyDBManager _renPyDBManager;
+        private delegate void StringAction(string entryName, string content, int index);
 
         private readonly Dictionary<StringCondition, StringAction> _actions = new();
 
-        public RenPyProcessor(RenPyDBManager renPyDBManager)
+        public RenPyProcessor(ISQLiteService sqliteService)
         {
             _actions = InitializeActions();
-            _renPyDBManager = renPyDBManager;
-            RenPyDataRepository = new(_renPyDBManager);
+            RenPyDataRepository = new();
+            SqliteService = sqliteService;
         }
 
-        private Dictionary<StringCondition, StringAction> InitializeActions() => new() { { IsLabel, AddLabel }, { IsScene, AddScene }, { IsPlaySound, AddSound }, { IsPlayMusic, AddMusic } };
+        private Dictionary<StringCondition, StringAction> InitializeActions() => new() { { IsLabel, AddLabel }, { IsScene, AddScene }, { IsPlaySound, AddSound }, { IsPlayMusic, AddMusic }, { IsDefineCharacter, AddCharacter } };
 
-        internal async Task ProcessFileContentAsync(Int64 rowID, string content)
+        internal async Task ProcessFileContentAsync(string entryName, string entryContent)
         {
-            using StringReader reader = new(content);
+            using StringReader reader = new(entryContent);
             {
                 string? line;
                 int index = 0;
@@ -36,53 +37,98 @@ namespace RenPyReader.DataProcessing
                 {
                     index += 1;
                     line = line.TrimStart();
-                    CheckKeywords(rowID, index, line);
+                    CheckKeywords(entryName, line, index);
                 }
             }
         }
 
-        private void CheckKeywords(Int64 rowID, int index, string input)
+        internal async Task BatchSaveAll()
+        {
+            await SqliteService.BatchInsertOrIgnoreBaseTable("events", [.. RenPyDataRepository.Events.Cast<RenPyBase>()]);
+            RenPyDataRepository.Events.Clear();
+
+            await SqliteService.BatchInsertOrIgnoreBaseTable("scenes", [.. RenPyDataRepository.Scenes.Cast<RenPyBase>()]);
+            RenPyDataRepository.Scenes.Clear();
+
+            await SqliteService.BatchInsertOrIgnoreBaseTable("sounds", [.. RenPyDataRepository.Sounds.Cast<RenPyBase>()]);
+            RenPyDataRepository.Sounds.Clear();
+
+            await SqliteService.BatchInsertOrIgnoreBaseTable("musics", [.. RenPyDataRepository.Musics.Cast<RenPyBase>()]);
+            RenPyDataRepository.Musics.Clear();
+
+            await SqliteService.BatchInsertOrIgnoreCharacters(RenPyDataRepository.Characters);
+            RenPyDataRepository.Characters.Clear();
+        }
+
+        private void CheckKeywords(string entryName, string content, int index)
         {
             foreach (var action in _actions)
             {
-                if (action.Key(input))
+                if (action.Key(content))
                 {
-                    action.Value(rowID, index, input);
+                    action.Value(entryName, content, index);
                     break;
                 }
             }
         }
 
-        private bool IsLabel(string input) => input.StartsWith("label", StringComparison.OrdinalIgnoreCase);
+        private bool IsLabel(string content) => content.StartsWith("label", StringComparison.OrdinalIgnoreCase);
 
-        private void AddLabel(Int64 rowID, int index, string input)
+        private void AddLabel(string entryName, string content, int index)
         {
-            var elementID = RenPyDataRepository.Events.Add(RegexProcessor.ExtractLabel(input));
-            RenPyDataRepository.EventsMap.Add((rowID, elementID, index));
+            var eventName = RegexProcessor.ExtractLabel(content);
+            if (!string.IsNullOrEmpty(eventName))
+            {
+                var newRenPyEvent = new RenPyEvent(eventName, entryName, (uint)index);
+                RenPyDataRepository.Events.Add(newRenPyEvent);
+            }
         }
 
-        private bool IsScene(string input) => input.StartsWith("scene", StringComparison.OrdinalIgnoreCase);
+        private bool IsScene(string content) => content.StartsWith("scene", StringComparison.OrdinalIgnoreCase);
 
-        private void AddScene(Int64 rowID, int index, string input)
+        private void AddScene(string entryName, string content, int index)
         {
-            var elementID = RenPyDataRepository.Scenes.Add(RegexProcessor.ExtractScene(input));
-            RenPyDataRepository.ScenesMap.Add((rowID, elementID, index));
+            var sceneName = RegexProcessor.ExtractScene(content);
+            if (!string.IsNullOrEmpty(sceneName))
+            {
+                var newRenPyScene = new RenPyScene(sceneName, entryName, (uint)index);
+                RenPyDataRepository.Scenes.Add(newRenPyScene);
+            }
         }
 
-        private bool IsPlaySound(string input) => input.StartsWith("play sound", StringComparison.OrdinalIgnoreCase);
+        private bool IsPlaySound(string content) => content.StartsWith("play sound", StringComparison.OrdinalIgnoreCase);
 
-        private void AddSound(Int64 rowID, int index, string input)
+        private void AddSound(string entryName, string content, int index)
         {
-            var elementID = RenPyDataRepository.Sounds.Add(RegexProcessor.ExtractSound(input));
-            RenPyDataRepository.SoundsMap.Add((rowID, elementID, index));
+            var soundName = RegexProcessor.ExtractSound(content);
+            if (!string.IsNullOrEmpty(soundName))
+            {
+                var newRenPySound = new RenPySound(soundName, entryName, (uint)index);
+                RenPyDataRepository.Sounds.Add(newRenPySound);
+            }
         }
 
-        private bool IsPlayMusic(string input) => input.StartsWith("play music", StringComparison.OrdinalIgnoreCase);
+        private bool IsPlayMusic(string content) => content.StartsWith("play music", StringComparison.OrdinalIgnoreCase);
 
-        private void AddMusic(Int64 rowID, int index, string input)
+        private void AddMusic(string entryName, string content, int index)
         {
-            var elementID = RenPyDataRepository.Musics.Add(RegexProcessor.ExtractMusic(input));
-            RenPyDataRepository.MusicsMap.Add((rowID, elementID, index));
+            var musicName = RegexProcessor.ExtractMusic(content);
+            if (!string.IsNullOrEmpty(musicName))
+            {
+                var newRenPyMusic = new RenPyMusic(musicName, entryName, (uint)index);
+                RenPyDataRepository.Musics.Add(newRenPyMusic);
+            }
+        }
+
+        private bool IsDefineCharacter(string content) => content.StartsWith("define", StringComparison.OrdinalIgnoreCase);
+
+        private void AddCharacter(string entryName, string content, int index)
+        {
+            var character = RegexProcessor.ExtractCharacter(content);
+            if (!string.IsNullOrEmpty(character.Name))
+            {
+                RenPyDataRepository.Characters.Add(character);
+            }
         }
     }
 }

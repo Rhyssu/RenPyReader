@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
 using RenPyReader.Components.Shared;
-using RenPyReader.Database;
 using RenPyReader.DataProcessing;
 using RenPyReader.Utilities;
 using SixLabors.ImageSharp;
@@ -14,8 +13,6 @@ namespace RenPyReader.Components.Pages
 {
     public partial class FileHandler : ComponentBase
     {
-        private DatabaseHandler? _databaseHandler;
-
         private FilePropertyHandler? _nameHandler;
 
         private ProgressBarHandler? _progressBarHandler;
@@ -50,11 +47,7 @@ namespace RenPyReader.Components.Pages
 
         private HashSet<string>? _imageEntries;
 
-        private RenPyDBManager? _renPyDBManager;
-
         private EntryListHandler? _entryListHandler;
-
-        private ObservableCollection<EntryItem>? EntryItems;
 
         private int _imageCount, _audioCount, _renPyCount = 0;
 
@@ -71,6 +64,7 @@ namespace RenPyReader.Components.Pages
                         { DevicePlatform.WinUI, [".zip"] }
                     })
                 };
+
                 _fileHandlers = new Dictionary<string, Func<ZipArchiveEntry, Task>>(
                     StringComparer.OrdinalIgnoreCase)
                 {
@@ -89,11 +83,7 @@ namespace RenPyReader.Components.Pages
                 };
 
                 _cts = new CancellationTokenSource();
-                string databaseName = _databaseHandler!.GetDatabaseName();
-                _renPyDBManager = new RenPyDBManager(databaseName);
-                _imageProcessor = new ImageProcessor(_renPyDBManager, _logBuffer);
-                _audioProcessor = new AudioProcessor(_renPyDBManager, _logBuffer);
-                _renPyProcessor = new RenPyProcessor(_renPyDBManager);
+                _renPyProcessor = new RenPyProcessor(SQLiteService);
             }
         }
 
@@ -196,8 +186,7 @@ namespace RenPyReader.Components.Pages
             }
             finally
             {
-                _renPyProcessor!.RenPyDataRepository.BatchSaveAll();
-                StateService.SetDataRepository(_renPyProcessor.RenPyDataRepository);
+                
                 _entryListHandler!.UpdateState();
                 
                 _logBuffer.Add($"Processing took {stopwatch.ElapsedMilliseconds} ms in total.");
@@ -272,18 +261,27 @@ namespace RenPyReader.Components.Pages
 
         private async Task ProcessRenPyFileAsync(ZipArchiveEntry entry)
         {
-            var renPyExtractor = new RenPyExtractor(_renPyDBManager!);
-            var blockProcessor = new BlockProcessor();
-            (Int64 rowID, string content) = await renPyExtractor.ExtractDataAndSave(entry);
-            await _renPyProcessor!.ProcessFileContentAsync(rowID, content);
-            await blockProcessor.ProcessFileContentAsync(content);
-            if (blockProcessor.BlocksReadSuccessfull != true)
-            {
+            var entryContent = await GetFileContentAsync(entry);
+            await SQLiteService.SaveDocumentAsync(entry.Name, entryContent);
+            await _renPyProcessor!.ProcessFileContentAsync(entry.Name, entryContent);
 
-            }
-
+            StateService.SetDataRepository(_renPyProcessor!.RenPyDataRepository);
+            
+            await _renPyProcessor!.BatchSaveAll();
             _renPyCountHandler!.Value = (_renPyCount += 1).ToString();
             _renPyCountHandler!.Update();
+        }
+
+        private async Task<string> GetFileContentAsync(ZipArchiveEntry entry)
+        {
+            await using (var entryStream = entry.Open())
+            {
+                using (var reader = new StreamReader(entryStream))
+                {
+                    var content = await reader.ReadToEndAsync();
+                    return !string.IsNullOrEmpty(content) ? content : string.Empty;
+                }
+            }
         }
 
         private void StartWorking()

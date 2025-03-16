@@ -1,6 +1,4 @@
 ﻿using RenPyReader.DataModels;
-using RenPyReader.Entities;
-using RenPyReader.Utilities;
 
 namespace RenPyReader.Services
 {
@@ -10,21 +8,17 @@ namespace RenPyReader.Services
 
         Task<List<Dictionary<string, string>>> GetTableDataAsync(string tableName);
 
-        void BatchInsertOrIgnoreSet(string tableName, OrderedSet<string> entries);
-
-        void BatchInsertOrIgnoreMap(string tableName, OrderedSet<(Int64 ParentRowID, int ElementID, int LineIndex)> maps);
-
-        Task<OrderedSet<string>> GetOrderedSet(string tableName);
-
-        Task<OrderedSet<MapEntry>> GetOrderedMap(string tableName);
-
-        Task<long> SaveDocumentAsync(string title, string content);
+        Task SaveDocumentAsync(string title, string content);
 
         Task<bool> DoesDocumentExistAsync(string title);
 
         Task<string> GetDocumentContentAsync(string title);
 
         Task<List<(long rowID, string title)>> GetAllDocumentTitlesAsync();
+
+        Task BatchInsertOrIgnoreBaseTable(string tableName, List<RenPyBase> renPyBaseEntries);
+
+        Task BatchInsertOrIgnoreCharacters(List<RenPyCharacter> characters);
 
         Task<List<RenPySearchResult>> QuickSearchAsync(string searchPhrase, bool useFullWord = false);
     }

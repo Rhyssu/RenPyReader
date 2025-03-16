@@ -3,10 +3,10 @@
 @using RenPyReader.Services
 @inject IJSRuntime JSRuntime
 @inject IApplicationStateService StateService
+@inject ISQLiteService SQLiteService
 
 <div class="file-handler-wrapper">
     <div class="file-handler-column small-column">
-        <DatabaseHandler @ref="_databaseHandler" />
         <FilePropertyHandler @ref="_nameHandler" 
             Label="ZIP archive name:" 
             Hint="Hint: Use upload button to select archive file."/>

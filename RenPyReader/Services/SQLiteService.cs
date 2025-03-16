@@ -1,6 +1,5 @@
 ﻿using Microsoft.Data.Sqlite;
 using RenPyReader.DataModels;
-using RenPyReader.Utilities;
 using SQLitePCL;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
@@ -97,8 +96,7 @@ namespace RenPyReader.Services
 
         private void CreateBaseTableIfNotExist(string tableName)
         {
-            ExecuteNonQueryCommand($@"CREATE TABLE IF NOT EXISTS {tableName} (ID INTEGER PRIMARY KEY, Name TEXT NOT NULL UNIQUE);");
-            ExecuteNonQueryCommand($@"CREATE TABLE IF NOT EXISTS {tableName + "Map"} (ID INTEGER PRIMARY KEY, ParentRow INTEGER, ElementRow INTEGER, LineIndex INTEGER);");
+            ExecuteNonQueryCommand($@"CREATE TABLE IF NOT EXISTS {tableName} (ID INTEGER PRIMARY KEY, Name TEXT NOT NULL, ParentName TEXT NOT NULL, LineIndex INTEGER NOT NULL);");
         }
 
         private void CreateBinaryTableIfNotExist(string tableName)
@@ -177,125 +175,11 @@ namespace RenPyReader.Services
             return result;
         }
 
-        void ISQLiteService.BatchInsertOrIgnoreSet(string tableName, OrderedSet<string> entries)
+        async Task ISQLiteService.SaveDocumentAsync(string title, string content)
         {
             if (_connection == null)
             {
                 return;
-            }
-
-            using (var transaction = _connection.BeginTransaction())
-            {
-                try
-                {
-                    using (var command = _connection.CreateCommand())
-                    {
-                        command.CommandText = $"INSERT INTO {tableName} (Name) VALUES (@Name)";
-                        var nameParameter = command.Parameters.Add("@Name", SqliteType.Text);
-
-                        foreach (var entry in entries)
-                        {
-                            command.Parameters["@Name"].Value = entry;
-                            command.ExecuteNonQuery();
-                        }
-                    }
-
-                    transaction.Commit();
-                }
-                catch
-                {
-                    transaction.Rollback();
-                }
-            }
-        }
-
-        void ISQLiteService.BatchInsertOrIgnoreMap(string tableName, OrderedSet<(Int64 ParentRowID, int ElementID, int LineIndex)> maps)
-        {
-            if (_connection == null)
-            {
-                return;
-            }
-
-            using (var transaction = _connection.BeginTransaction())
-            {
-                try
-                {
-                    using (var command = _connection.CreateCommand())
-                    {
-                        command.CommandText = $"INSERT INTO {tableName + "Map"} (ParentRow, ElementRow, LineIndex) VALUES (@ParentRow, @ElementRow, @LineIndex)";
-                        var parentRowParameter = command.Parameters.Add("@ParentRow", SqliteType.Integer);
-                        var elementIDParameter = command.Parameters.Add("@ElementRow", SqliteType.Integer);
-                        var LineIndexParameter = command.Parameters.Add("@LineIndex", SqliteType.Integer);
-
-                        foreach (var (ParentID, ElementID, LineIndex) in maps)
-                        {
-                            command.Parameters["@ParentRow"].Value = ParentID;
-                            command.Parameters["@ElementRow"].Value = ElementID;
-                            command.Parameters["@LineIndex"].Value = LineIndex;
-                            command.ExecuteNonQuery();
-                        }
-                    }
-
-                    transaction.Commit();
-                }
-                catch
-                {
-                    transaction.Rollback();
-                }
-            }
-        }
-
-        async Task<OrderedSet<string>> ISQLiteService.GetOrderedSet(string tableName)
-        {
-            var result = new OrderedSet<string>();
-            if (_connection == null)
-            {
-                return result;
-            }
-
-            using (var command = _connection.CreateCommand())
-            {
-                command.CommandText = $"SELECT Name from {tableName};";
-                await using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        result.Add(reader.GetString(0));
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        async Task<OrderedSet<Entities.MapEntry>> ISQLiteService.GetOrderedMap(string tableName)
-        {
-            var result = new OrderedSet<Entities.MapEntry>();
-            if (_connection == null)
-            {
-                return result;
-            }
-
-            using (var command = _connection.CreateCommand())
-            {
-                command.CommandText = $"SELECT ParentRow, ElementRow, LineIndex from {tableName + "Map"};";
-                await using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        result.Add((reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)));
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        async Task<long> ISQLiteService.SaveDocumentAsync(string title, string content)
-        {
-            if (_connection == null)
-            {
-                return -1;
             }
 
             using var transaction = _connection.BeginTransaction();
@@ -318,12 +202,83 @@ namespace RenPyReader.Services
                     transaction.Commit();
                 }
 
-                return rowId;
+                return;
             }
             catch
             {
                 transaction.Rollback();
-                return -1;
+            }
+        }
+
+        async Task ISQLiteService.BatchInsertOrIgnoreBaseTable(string tableName, List<RenPyBase> renPyBaseEntries)
+        {
+            if (_connection == null)
+            {
+                return;
+            }
+
+            await using (var transaction = _connection.BeginTransaction())
+            {
+                try
+                {
+                    await using (var command = _connection.CreateCommand())
+                    {
+                        command.CommandText = $"INSERT INTO {tableName} (Name, ParentName, LineIndex) VALUES (@Name, @ParentName, @LineIndex)";
+                        var nameParam = command.Parameters.Add("@Name", SqliteType.Text);
+                        var parentNameParam = command.Parameters.Add("@ParentName", SqliteType.Text);
+                        var lineIndexParam = command.Parameters.Add("@LineIndex", SqliteType.Integer);
+
+                        foreach (var entry in renPyBaseEntries)
+                        {
+                            command.Parameters["@Name"].Value = entry.Name;
+                            command.Parameters["@ParentName"].Value = entry.Parent;
+                            command.Parameters["@LineIndex"].Value = entry.Index;
+                            command.ExecuteNonQuery();
+                        }
+                    }
+
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                }
+            }
+        }
+
+        public async Task BatchInsertOrIgnoreCharacters(List<RenPyCharacter> characters)
+        {
+            if (_connection == null)
+            {
+                return;
+            }
+
+            await using (var transaction = _connection.BeginTransaction())
+            {
+                try
+                {
+                    await using (var command = _connection.CreateCommand())
+                    {
+                        command.CommandText = $"INSERT INTO characters (Code, Name, Color) VALUES (@Code, @Name, @Color)";
+                        var codeParam = command.Parameters.Add("@Code", SqliteType.Text);
+                        var nameParam = command.Parameters.Add("@Name", SqliteType.Text);
+                        var colorParam = command.Parameters.Add("@Color", SqliteType.Text);
+
+                        foreach (var character in characters)
+                        {
+                            command.Parameters["@Code"].Value = character.Code;
+                            command.Parameters["@Name"].Value = character.Name;
+                            command.Parameters["@Color"].Value = character.ColorHTML;
+                            command.ExecuteNonQuery();
+                        }
+                    }
+
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                }
             }
         }
 
