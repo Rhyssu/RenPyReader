@@ -61,7 +61,7 @@ namespace RenPyReader.Utilities
             return new RenPyCharacter("", "", "");
         }
 
-        [GeneratedRegex(@"^""|(?<!\b\w+\s)\b\w+\b""", RegexOptions.Compiled)]
+        [GeneratedRegex(@"^\s*(\b\w+\b\s)?""[^""]+""$", RegexOptions.Compiled)]
         private static partial Regex DialogueRegex();
 
         internal static bool IsDialogue(string input)

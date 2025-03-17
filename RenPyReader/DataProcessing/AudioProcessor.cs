@@ -1,14 +1,17 @@
 ﻿using NAudio.Lame;
 using NAudio.Wave;
 using RenPyReader.DataModels;
+using RenPyReader.Services;
 using RenPyReader.Utilities;
 using System.IO.Compression;
 
 namespace RenPyReader.DataProcessing
 {
     // Class responsible for processing and compressing audio files
-    internal partial class AudioProcessor(LogBuffer logBuffer)
+    internal partial class AudioProcessor(ISQLiteService sqliteService, LogBuffer logBuffer)
     {
+        private readonly ISQLiteService _sqliteService = sqliteService;
+
         // Log buffer for logging exceptions and messages
         private readonly LogBuffer _logBuffer = logBuffer;
 
@@ -61,9 +64,8 @@ namespace RenPyReader.DataProcessing
                 compressedStream.Position = 0;
                 byte[] compressedAudio = compressedStream.ToArray();
                 RenPyAudio renPyAudio = new RenPyAudio(entry.Name, compressedAudio);
-
                 // Insert the compressed audio into the database
-                // await _renPyDBManager.InsertAudioAsync(renPyAudio);
+                await _sqliteService.InsertAudioAsync(renPyAudio);
             }
         }
     }

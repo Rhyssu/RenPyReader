@@ -1,4 +1,5 @@
 ﻿using RenPyReader.DataModels;
+using RenPyReader.Services;
 using RenPyReader.Utilities;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
@@ -9,8 +10,10 @@ using Image = SixLabors.ImageSharp.Image;
 namespace RenPyReader.DataProcessing
 {
     // Class responsible for processing and resizing images
-    internal partial class ImageProcessor(LogBuffer logBuffer)
+    internal partial class ImageProcessor(ISQLiteService sqliteService, LogBuffer logBuffer)
     {
+        private readonly ISQLiteService _sqliteService = sqliteService;
+
         // Log buffer for logging exceptions and messages
         private readonly LogBuffer _logBuffer = logBuffer;
 
@@ -35,7 +38,7 @@ namespace RenPyReader.DataProcessing
                     var newRenPyImage = await ResizeImageAsync(memoryStream, entry.Name);
                     if (newRenPyImage != null)
                     {
-                        // await _renPyDBManager.InsertImageAsync(newRenPyImage);
+                        await _sqliteService.InsertImageAsync(newRenPyImage);
                     }
                 }
             }

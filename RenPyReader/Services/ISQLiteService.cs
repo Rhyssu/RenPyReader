@@ -8,6 +8,8 @@ namespace RenPyReader.Services
 
         Task<List<Dictionary<string, string>>> GetTableDataAsync(string tableName);
 
+        Task<List<RenPyEvent>> GetRenPyEventsAsync();
+
         Task SaveDocumentAsync(string title, string content);
 
         Task<bool> DoesDocumentExistAsync(string title);
@@ -16,10 +18,14 @@ namespace RenPyReader.Services
 
         Task<List<(long rowID, string title)>> GetAllDocumentTitlesAsync();
 
-        Task BatchInsertOrIgnoreBaseTable(string tableName, List<RenPyBase> renPyBaseEntries);
+        Task BatchInsertOrReplaceBaseTableAsync(string tableName, List<RenPyBase> renPyBaseEntries);
 
-        Task BatchInsertOrIgnoreCharacters(List<RenPyCharacter> characters);
+        Task BatchInsertOrReplaceCharactersAsync(List<RenPyCharacter> characters);
 
         Task<List<RenPySearchResult>> QuickSearchAsync(string searchPhrase, bool useFullWord = false);
+
+        Task InsertAudioAsync(RenPyAudio renPyAudio);
+
+        Task InsertImageAsync(RenPyImage renPyImage);
     }
 }

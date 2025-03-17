@@ -3,7 +3,6 @@ using RenPyReader.Components.Shared;
 using RenPyReader.DataProcessing;
 using RenPyReader.Utilities;
 using SixLabors.ImageSharp;
-using System.Collections.ObjectModel;
 using System.Data;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -83,6 +82,8 @@ namespace RenPyReader.Components.Pages
                 };
 
                 _cts = new CancellationTokenSource();
+                _audioProcessor = new AudioProcessor(SQLiteService, _logBuffer);
+                _imageProcessor = new ImageProcessor(SQLiteService, _logBuffer);
                 _renPyProcessor = new RenPyProcessor(SQLiteService);
             }
         }
@@ -217,13 +218,13 @@ namespace RenPyReader.Components.Pages
 
         private async Task ProcessImageFileAsync(ZipArchiveEntry entry)
         {
-            //var skip = SkipImageProcessing(entry.Name);
-            //if (!skip)
-            //{
-            //    await _imageProcessor!.ProcessImageAsync(entry);
-            //    _imageCountHandler!.Value = (_imageCount += 1).ToString();
-            //    _imageCountHandler!.Update();
-            //}
+            var skip = SkipImageProcessing(entry.Name);
+            if (!skip)
+            {
+                await _imageProcessor!.ProcessImageAsync(entry);
+                _imageCountHandler!.Value = (_imageCount += 1).ToString();
+                _imageCountHandler!.Update();
+            }
         }
 
         private bool SkipImageProcessing(string imageName)

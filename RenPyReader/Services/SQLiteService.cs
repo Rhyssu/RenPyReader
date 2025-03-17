@@ -96,7 +96,7 @@ namespace RenPyReader.Services
 
         private void CreateBaseTableIfNotExist(string tableName)
         {
-            ExecuteNonQueryCommand($@"CREATE TABLE IF NOT EXISTS {tableName} (ID INTEGER PRIMARY KEY, Name TEXT NOT NULL, ParentName TEXT NOT NULL, LineIndex INTEGER NOT NULL);");
+            ExecuteNonQueryCommand($@"CREATE TABLE IF NOT EXISTS {tableName} (ID INTEGER PRIMARY KEY, Name TEXT NOT NULL, ParentName TEXT NOT NULL, LineIndex INTEGER NOT NULL, UNIQUE(Name, ParentName, LineIndex) ON CONFLICT REPLACE);");
         }
 
         private void CreateBinaryTableIfNotExist(string tableName)
@@ -139,6 +139,32 @@ namespace RenPyReader.Services
                     while (await reader.ReadAsync())
                     {
                         result.Add(reader.GetString(0));
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        async Task<List<RenPyEvent>> ISQLiteService.GetRenPyEventsAsync()
+        {
+            var result = new List<RenPyEvent>();
+            if (_connection == null)
+            {
+                return result;
+            }
+
+            using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = @"SELECT * FROM events;";
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        result.Add(new RenPyEvent(
+                            reader.GetString(1), 
+                            reader.GetString(2), 
+                            (uint)reader.GetInt32(3)));
                     }
                 }
             }
@@ -210,7 +236,7 @@ namespace RenPyReader.Services
             }
         }
 
-        async Task ISQLiteService.BatchInsertOrIgnoreBaseTable(string tableName, List<RenPyBase> renPyBaseEntries)
+        async Task ISQLiteService.BatchInsertOrReplaceBaseTableAsync(string tableName, List<RenPyBase> renPyBaseEntries)
         {
             if (_connection == null)
             {
@@ -223,7 +249,7 @@ namespace RenPyReader.Services
                 {
                     await using (var command = _connection.CreateCommand())
                     {
-                        command.CommandText = $"INSERT INTO {tableName} (Name, ParentName, LineIndex) VALUES (@Name, @ParentName, @LineIndex)";
+                        command.CommandText = $"INSERT OR REPLACE INTO {tableName} (Name, ParentName, LineIndex) VALUES (@Name, @ParentName, @LineIndex)";
                         var nameParam = command.Parameters.Add("@Name", SqliteType.Text);
                         var parentNameParam = command.Parameters.Add("@ParentName", SqliteType.Text);
                         var lineIndexParam = command.Parameters.Add("@LineIndex", SqliteType.Integer);
@@ -246,7 +272,7 @@ namespace RenPyReader.Services
             }
         }
 
-        public async Task BatchInsertOrIgnoreCharacters(List<RenPyCharacter> characters)
+        public async Task BatchInsertOrReplaceCharactersAsync(List<RenPyCharacter> characters)
         {
             if (_connection == null)
             {
@@ -259,7 +285,7 @@ namespace RenPyReader.Services
                 {
                     await using (var command = _connection.CreateCommand())
                     {
-                        command.CommandText = $"INSERT INTO characters (Code, Name, Color) VALUES (@Code, @Name, @Color)";
+                        command.CommandText = $"INSERT OR REPLACE INTO characters (Code, Name, Color) VALUES (@Code, @Name, @Color)";
                         var codeParam = command.Parameters.Add("@Code", SqliteType.Text);
                         var nameParam = command.Parameters.Add("@Name", SqliteType.Text);
                         var colorParam = command.Parameters.Add("@Color", SqliteType.Text);
@@ -397,6 +423,40 @@ namespace RenPyReader.Services
             }
 
             return searchResults;
+        }
+
+        public async Task InsertImageAsync(RenPyImage renPyImage)
+        {
+            if (_connection == null)
+            {
+                return;
+            }
+
+            await using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = @"INSERT OR REPLACE INTO images (Name, Content) VALUES (@Name, @Content);";
+                command.Parameters.AddWithValue("@Name", renPyImage.Name);
+                command.Parameters.AddWithValue("@Content", renPyImage.Content);
+
+                await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+            }
+        }
+
+        public async Task InsertAudioAsync(RenPyAudio renPyAudio)
+        {
+            if (_connection == null)
+            {
+                return;
+            }
+
+            await using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = @"INSERT OR REPLACE INTO audios (Name, Content) VALUES (@Name, @Content);";
+                command.Parameters.AddWithValue("@Name", renPyAudio.Name);
+                command.Parameters.AddWithValue("@Content", renPyAudio.Content);
+
+                await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+            }
         }
     }
 }

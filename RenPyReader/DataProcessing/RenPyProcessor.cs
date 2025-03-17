@@ -44,19 +44,19 @@ namespace RenPyReader.DataProcessing
 
         internal async Task BatchSaveAll()
         {
-            await SqliteService.BatchInsertOrIgnoreBaseTable("events", [.. RenPyDataRepository.Events.Cast<RenPyBase>()]);
+            await SqliteService.BatchInsertOrReplaceBaseTableAsync("events", [.. RenPyDataRepository.Events.Cast<RenPyBase>()]);
             RenPyDataRepository.Events.Clear();
 
-            await SqliteService.BatchInsertOrIgnoreBaseTable("scenes", [.. RenPyDataRepository.Scenes.Cast<RenPyBase>()]);
+            await SqliteService.BatchInsertOrReplaceBaseTableAsync("scenes", [.. RenPyDataRepository.Scenes.Cast<RenPyBase>()]);
             RenPyDataRepository.Scenes.Clear();
 
-            await SqliteService.BatchInsertOrIgnoreBaseTable("sounds", [.. RenPyDataRepository.Sounds.Cast<RenPyBase>()]);
+            await SqliteService.BatchInsertOrReplaceBaseTableAsync("sounds", [.. RenPyDataRepository.Sounds.Cast<RenPyBase>()]);
             RenPyDataRepository.Sounds.Clear();
 
-            await SqliteService.BatchInsertOrIgnoreBaseTable("musics", [.. RenPyDataRepository.Musics.Cast<RenPyBase>()]);
+            await SqliteService.BatchInsertOrReplaceBaseTableAsync("musics", [.. RenPyDataRepository.Musics.Cast<RenPyBase>()]);
             RenPyDataRepository.Musics.Clear();
 
-            await SqliteService.BatchInsertOrIgnoreCharacters(RenPyDataRepository.Characters);
+            await SqliteService.BatchInsertOrReplaceCharactersAsync(RenPyDataRepository.Characters);
             RenPyDataRepository.Characters.Clear();
         }
 

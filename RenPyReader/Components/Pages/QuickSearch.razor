@@ -1,13 +1,26 @@
 @page "/quickSearch"
 @using RenPyReader.Services
 @inject ISQLiteService SQLiteService
+<input @bind="_inputText" @onkeydown="HandleKeyDown" type="text" placeholder="Type something and press Enter" />
 
-<input @bind="InputText" @onkeydown="HandleKeyDown" type="text" placeholder="Type something and press Enter" />
-@foreach (var searchResult in SearchResults)
-{
-    <div>
-        <p>
-            @searchResult.Content
-        </p>
-    </div>
-}
+<div class="scrollable-list">
+    @foreach (var kvp in _searchEventDict)
+    {
+        <div class="list-item">
+            <div class="item-header">
+                @kvp.Key.Name
+            </div>
+            @if (kvp.Value != null && kvp.Value.Any())
+            {
+                <div class="subitems">
+                    @foreach (var searchResult in kvp.Value)
+                    {
+                        <div class="subitem">
+                            @searchResult.Content
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
