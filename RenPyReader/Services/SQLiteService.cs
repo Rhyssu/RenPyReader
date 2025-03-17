@@ -272,7 +272,7 @@ namespace RenPyReader.Services
             }
         }
 
-        public async Task BatchInsertOrReplaceCharactersAsync(List<RenPyCharacter> characters)
+        async Task ISQLiteService.BatchInsertOrReplaceCharactersAsync(List<RenPyCharacter> characters)
         {
             if (_connection == null)
             {
@@ -381,7 +381,7 @@ namespace RenPyReader.Services
             return documents;
         }
 
-        public async Task<List<RenPySearchResult>> QuickSearchAsync(string searchPhrase, bool useFullWord = false)
+        async Task<List<RenPySearchResult>> ISQLiteService.QuickSearchAsync(string searchPhrase, bool useFullWord = false)
         {
             var searchResults = new List<RenPySearchResult>();
             if (_connection == null)
@@ -425,7 +425,7 @@ namespace RenPyReader.Services
             return searchResults;
         }
 
-        public async Task InsertImageAsync(RenPyImage renPyImage)
+        async Task ISQLiteService.InsertImageAsync(RenPyImage renPyImage)
         {
             if (_connection == null)
             {
@@ -442,7 +442,7 @@ namespace RenPyReader.Services
             }
         }
 
-        public async Task InsertAudioAsync(RenPyAudio renPyAudio)
+        async Task ISQLiteService.InsertAudioAsync(RenPyAudio renPyAudio)
         {
             if (_connection == null)
             {
@@ -457,6 +457,88 @@ namespace RenPyReader.Services
 
                 await command.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
+        }
+
+        async Task<RenPyEvent?> ISQLiteService.GetRenPyEventAsync(string eventName)
+        {
+            if (_connection == null)
+            {
+                return null;
+            }
+
+            using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = @"SELECT * FROM events WHERE Name = @Name;";
+                command.Parameters.AddWithValue("@Name", eventName);
+                await using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var renPyEvent = new RenPyEvent(
+                            reader.GetString(1), 
+                            reader.GetString(2), 
+                            (uint)reader.GetInt32(3));
+                        return renPyEvent;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        async Task<List<RenPyBase>> ISQLiteService.GetRenPyBaseTableAsync(string tableName, string parentName, int start, int end)
+        {
+            if (_connection == null)
+            {
+                return new List<RenPyBase>();
+            }
+
+            using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = @$"SELECT * FROM {tableName} WHERE ParentName = @ParentName AND LineIndex >= @Start AND LineIndex <= @End";
+                command.Parameters.AddWithValue("@Start", start); command.Parameters.AddWithValue("@End", end);
+                command.Parameters.AddWithValue("@ParentName", parentName);
+                await using (var reader = await command.ExecuteReaderAsync())
+                {
+                    switch (tableName)
+                    {
+                        case "scenes":
+                            var scenes = new List<RenPyScene>();
+                            while (await reader.ReadAsync())
+                            {
+                                scenes.Add(new RenPyScene(
+                                    reader.GetString(1), 
+                                    reader.GetString(2), 
+                                    (uint)reader.GetInt32(3)));
+                            }
+                            return [.. scenes.Cast<RenPyBase>()];
+                        case "musics":
+                            var musics = new List<RenPyMusic>();
+                            while (await reader.ReadAsync())
+                            {
+                                musics.Add(new RenPyMusic(
+                                    reader.GetString(1), 
+                                    reader.GetString(2), 
+                                    (uint)reader.GetInt32(3)));
+                            }
+                            return [.. musics.Cast<RenPyBase>()];
+                        case "sounds":
+                            var sounds = new List<RenPySound>();
+                            while (await reader.ReadAsync())
+                            {
+                                sounds.Add(new RenPySound(
+                                    reader.GetString(1), 
+                                    reader.GetString(2), 
+                                    (uint)reader.GetInt32(3)));
+                            }
+                            return [.. sounds.Cast<RenPyBase>()];
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            return new List<RenPyBase>();
         }
     }
 }

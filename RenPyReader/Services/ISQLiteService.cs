@@ -10,6 +10,10 @@ namespace RenPyReader.Services
 
         Task<List<RenPyEvent>> GetRenPyEventsAsync();
 
+        Task<RenPyEvent?> GetRenPyEventAsync(string eventName);
+
+        Task<List<RenPyBase>> GetRenPyBaseTableAsync(string tableName, string parentName, int start, int end);
+
         Task SaveDocumentAsync(string title, string content);
 
         Task<bool> DoesDocumentExistAsync(string title);
