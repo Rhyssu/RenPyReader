@@ -31,5 +31,7 @@ namespace RenPyReader.Services
         Task InsertAudioAsync(RenPyAudio renPyAudio);
 
         Task InsertImageAsync(RenPyImage renPyImage);
+
+        Task<RenPyImage?> GetImageAsync(string sceneName);
     }
 }

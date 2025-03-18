@@ -13,9 +13,9 @@ namespace RenPyReader.Components.Pages
             if (firstRender)
             {
                 EventContext = new EventContext(SQLiteService);
+
                 var renPyEvent = await SQLiteService.GetRenPyEventAsync("iodorm35");
                 await EventContext.SetAndInitialize(renPyEvent!);
-                
                 StateHasChanged();
             }
         }
@@ -25,25 +25,35 @@ namespace RenPyReader.Components.Pages
     {
         private RenPyEvent? _event;
 
-        private int _eventStartIndex = -1;
-
         private int _eventStopIndex = -1;
+        
+        private int _eventStartIndex = -1;
 
         private List<string> _content = new();
 
-        private List<(int index, string content)> _dialogue = new();
-
         private List<RenPyScene> _scenes = new();
+
+        private RenPyScene? _currentScene;
 
         private List<RenPyMusic> _musics = new();
 
+        private RenPyMusic? _currentMusic;
+
         private List<RenPySound> _sounds = new();
 
-        public readonly ISQLiteService _sqliteService;
+        private RenPySound? _currentSound;
+
+        private List<(int index, string content)> _dialogue = new();
+
+        public string? currentDialogue;
+
+        public readonly ISQLiteService sqliteService;
+
+        public string? imageSource;
 
         public EventContext(ISQLiteService sqliteService)
         {
-            _sqliteService = sqliteService;
+            this.sqliteService = sqliteService;
         }
 
         public async Task SetAndInitialize(RenPyEvent renPyEvent)
@@ -51,6 +61,33 @@ namespace RenPyReader.Components.Pages
             _event = renPyEvent;
             await GetEventDetails();
             await SetAdditionalContext();
+            await PrepareStartingView();
+        }
+
+        public string GetTitle()
+        {
+            if (_event == null)
+            {
+                return string.Empty;
+            }
+
+            return _event.Name;
+        }
+
+        public async Task SetCurrentSceneImageSource()
+        {
+            if (_currentScene == null)
+            {
+                return;
+            }
+
+            var image = await sqliteService.GetImageAsync(_currentScene.Name);
+            if (image == null || image.Content == null)
+            {
+                return;
+            }
+
+            imageSource = GetImageSource(image.Content);
         }
 
         private async Task GetEventDetails()
@@ -61,7 +98,7 @@ namespace RenPyReader.Components.Pages
                 return;
             }
 
-            string content = await _sqliteService.GetDocumentContentAsync(_event.Parent);
+            string content = await sqliteService.GetDocumentContentAsync(_event.Parent);
             if (string.IsNullOrEmpty(content))
             {
                 // No parent content, aborting
@@ -115,16 +152,37 @@ namespace RenPyReader.Components.Pages
         private async Task SetAdditionalContext()
         {
             _scenes.Clear();
-            var scenes = await _sqliteService.GetRenPyBaseTableAsync("scenes", _event!.Parent, _eventStartIndex, _eventStopIndex);
+            var scenes = await sqliteService.GetRenPyBaseTableAsync("scenes", _event!.Parent, _eventStartIndex, _eventStopIndex);
             _scenes = [.. scenes.Cast<RenPyScene>()];
 
             _sounds.Clear();
-            var sounds = await _sqliteService.GetRenPyBaseTableAsync("sounds", _event!.Parent, _eventStartIndex, _eventStopIndex);
+            var sounds = await sqliteService.GetRenPyBaseTableAsync("sounds", _event!.Parent, _eventStartIndex, _eventStopIndex);
             _sounds = [.. sounds.Cast<RenPySound>()];
 
             _musics.Clear();
-            var musics = await _sqliteService.GetRenPyBaseTableAsync("musics", _event!.Parent, _eventStartIndex, _eventStopIndex);
+            var musics = await sqliteService.GetRenPyBaseTableAsync("musics", _event!.Parent, _eventStartIndex, _eventStopIndex);
             _musics = [.. musics.Cast<RenPyMusic>()];
+        }
+
+        private async Task PrepareStartingView()
+        {
+            _currentScene = _scenes.FirstOrDefault();
+            await SetCurrentSceneImageSource();
+
+            var firstMusic = _musics.FirstOrDefault();
+            var (index, content) = _dialogue.FirstOrDefault();
+            currentDialogue = content;
+
+            if (firstMusic?.Index < index)
+            {
+                _currentMusic = firstMusic;
+            }
+        }
+
+        private string GetImageSource(byte[] content)
+        {
+            var base64str = Convert.ToBase64String(content);
+            return string.Format("data:image/webp;base64,{0}", base64str);
         }
     }
 }

@@ -3,6 +3,7 @@ using RenPyReader.DataModels;
 using SQLitePCL;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace RenPyReader.Services
 {
@@ -353,6 +354,7 @@ namespace RenPyReader.Services
                     }
                 }
             }
+
             return result;
         }
 
@@ -539,6 +541,32 @@ namespace RenPyReader.Services
             }
 
             return new List<RenPyBase>();
+        }
+
+        async Task<RenPyImage?> ISQLiteService.GetImageAsync(string sceneName)
+        {
+            if (_connection == null)
+            {
+                return null;
+            }
+
+            using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = @"SELECT Name, Content FROM images WHERE Name LIKE @Name;";
+                command.Parameters.AddWithValue("@Name", $"%{sceneName}.%");
+                await using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var renPyImage = new RenPyImage(
+                            reader.GetString(0),
+                            reader.GetFieldValue<byte[]>(1));
+                        return renPyImage;
+                    }
+                }
+            }
+
+            return null;
         }
     }
 }

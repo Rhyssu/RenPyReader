@@ -1,3 +1,26 @@
 @page "/eventReader"
 @using RenPyReader.Services
 @inject ISQLiteService SQLiteService
+
+<div class="wrapper">
+    <div class="title-row">
+        @if (EventContext != null)
+        {
+            <h2>
+                @EventContext.GetTitle()
+            </h2>
+        }
+    </div>
+    <div class="image-preview-row">
+        @if (EventContext != null && !string.IsNullOrEmpty(EventContext.imageSource))
+        {
+            <img src="@EventContext.imageSource" />
+        }
+    </div>
+    <div class="dialogue-row">
+        @if (EventContext != null && !string.IsNullOrEmpty(EventContext.currentDialogue))
+        {
+            @EventContext.currentDialogue
+        }
+    </div>
+</div>
