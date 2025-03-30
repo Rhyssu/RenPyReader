@@ -240,13 +240,13 @@ namespace RenPyReader.Components.Pages
 
         private async Task ProcessAudioFileAsync(ZipArchiveEntry entry)
         {
-            //var skip = SkipAudioProcessing(entry.Name);
-            //if (!skip)
-            //{
-            //    await _audioProcessor!.ProcessAudioAsync(entry);
-            //    _audioCountHandler!.Value = (_audioCount += 1).ToString();
-            //    _audioCountHandler!.Update();
-            //}
+            var skip = SkipAudioProcessing(entry.Name);
+            if (!skip)
+            {
+                await _audioProcessor!.ProcessAudioAsync(entry);
+                _audioCountHandler!.Value = (_audioCount += 1).ToString();
+                _audioCountHandler!.Update();
+            }
         }
 
         private bool SkipAudioProcessing(string audioName)

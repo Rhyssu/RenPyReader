@@ -1,26 +1,59 @@
 @page "/eventReader"
 @using RenPyReader.Services
+@using RenPyReader.Components.Shared
 @inject ISQLiteService SQLiteService
+@inject IStringTransformerService StringTransformerService
+@inject IAudioPlayerService AudioPlayerService
 
-<div class="wrapper">
-    <div class="title-row">
-        @if (EventContext != null)
-        {
-            <h2>
-                @EventContext.GetTitle()
-            </h2>
-        }
+@if (IsEventSearch)
+{
+    <div class="container">
+        <div class="row vh-80 align-items-center justify-content-center">
+            <div class="col-md-6 text-center">
+                <h1 class="display-4 mb-4">Enter event name:</h1>
+                <input type="text" class="form-control form-control-lg" @bind-value="EventNameInput" @bind-value:event="oninput" @onkeydown="HandleKeyDown" />
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert alert-danger mt-2" role="alert">
+                        @ErrorMessage
+                    </div>
+                }
+            </div>
+        </div>
     </div>
-    <div class="image-preview-row">
-        @if (EventContext != null && !string.IsNullOrEmpty(EventContext.imageSource))
-        {
-            <img src="@EventContext.imageSource" />
-        }
+}
+else if (IsEventDisplay && EventDisplay != null)
+{
+    <div class="container-fluid vh-80 d-flex align-items-center justify-content-center">
+        <div class="text-ceningter">
+            @if (!string.IsNullOrEmpty(EventDisplay.ImageSource))
+            {
+                <div class="mb-4">
+                    <img src="@EventDisplay.ImageSource" alt="Centered Image" class="img-fluid" style="max-height: 600px;">
+                </div>
+            }
+            <div class="mb-4">
+                @if (EventDisplay.CurrentCharacter != null && !string.IsNullOrEmpty(EventDisplay.CurrentCharacter.ColorHTML))
+                {
+                    <h4 style="color: @(EventDisplay.CurrentCharacter.ColorHTML);">
+                        @StringTransformerService.ApplyTransformations(@EventDisplay.CurrentDialogue.Content)
+                    </h4>
+                }
+                else
+                {
+                    <h4>
+                        @StringTransformerService.ApplyTransformations(@EventDisplay.CurrentDialogue.Content)
+                    </h4>
+                }
+            </div>
+            <div class="d-flex justify-content-between w-100">
+                <button @onclick="async () => await GoToPreviousDialogue()" class="btn btn-primary btn-lg w-50 me-2" disabled="@IsPreviousButtonDisabled">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+                <button @onclick="async () => await GoToNextDialogue()" class="btn btn-primary btn-lg w-50 ms-2" disabled="@IsNextButtonDisabled">
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="dialogue-row">
-        @if (EventContext != null && !string.IsNullOrEmpty(EventContext.currentDialogue))
-        {
-            @EventContext.currentDialogue
-        }
-    </div>
-</div>
+}

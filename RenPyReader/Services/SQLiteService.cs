@@ -3,7 +3,6 @@ using RenPyReader.DataModels;
 using SQLitePCL;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 
 namespace RenPyReader.Services
 {
@@ -562,6 +561,59 @@ namespace RenPyReader.Services
                             reader.GetString(0),
                             reader.GetFieldValue<byte[]>(1));
                         return renPyImage;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        async Task<RenPyAudio?> ISQLiteService.GetAudioAsync(string audioName)
+        {
+            if (_connection == null)
+            {
+                return null;
+            }
+
+            using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = @"SELECT Name, Content FROM audios WHERE Name COLLATE NOCASE = @Name;";
+                command.Parameters.AddWithValue("@Name", audioName);
+                await using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var renPyAudio = new RenPyAudio(
+                            reader.GetString(0),
+                            reader.GetFieldValue<byte[]>(1));
+                        return renPyAudio;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        async Task<RenPyCharacter?> ISQLiteService.GetCharacterAsync(string codeName)
+        {
+            if (_connection == null)
+            {
+                return null;
+            }
+
+            using (var command = _connection.CreateCommand())
+            {
+                command.CommandText = @"SELECT * FROM characters WHERE Code = @Code;";
+                command.Parameters.AddWithValue("@Code", codeName);
+                await using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var renPyCharacter = new RenPyCharacter(
+                            reader.GetString(0),
+                            reader.GetString(1),
+                            reader.GetString(2));
+                        return renPyCharacter;
                     }
                 }
             }
